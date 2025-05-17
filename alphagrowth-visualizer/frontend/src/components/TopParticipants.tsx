@@ -37,16 +37,19 @@ const TopParticipants = () => {
           })
           
           // Validate the response data
-          if (!response.data || !Array.isArray(response.data)) {
-            console.error('Invalid response data:', response.data)
-            throw new Error('Invalid response data format')
+          if (!response.data) {
+            console.error('No data in response')
+            throw new Error('No data received')
           }
           
-          // Log the first few items to verify data structure
-          console.log('First 3 participants:', response.data.slice(0, 3))
-          console.log('Total participants:', response.data.length)
+          // Ensure we have an array
+          const participants = Array.isArray(response.data) ? response.data : [response.data]
           
-          setParticipants(response.data)
+          // Log the first few items to verify data structure
+          console.log('First 3 participants:', participants.slice(0, 3))
+          console.log('Total participants:', participants.length)
+          
+          setParticipants(participants)
           setError(null)
           break
         } catch (error) {
