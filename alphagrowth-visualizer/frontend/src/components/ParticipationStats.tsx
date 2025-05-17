@@ -25,20 +25,27 @@ const ParticipationStats = () => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
+        console.log('Fetching stats from:', `${apiBaseUrl}/api/stats`)
         const response = await axios.get<Stats>(`${apiBaseUrl}/api/stats`)
         setStats(response.data)
         setError(null)
       } catch (error) {
         console.error('Error fetching stats:', error)
-        setError('Failed to load statistics')
+        if (axios.isAxiosError(error)) {
+          console.error('Response data:', error.response?.data)
+          console.error('Response status:', error.response?.status)
+          setError(`Failed to load stats: ${error.response?.data?.message || error.message}`)
+        } else {
+          setError('Failed to load stats: Unknown error')
+        }
       } finally {
         setLoading(false)
       }
     }
 
-    fetchStats()
+    fetchData()
   }, [])
 
   if (loading) {

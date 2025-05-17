@@ -9,4 +9,4 @@ const config = {
 
 // Use Vite's environment mode
 const env = import.meta.env.MODE || 'development'
-export const apiBaseUrl = config[env as keyof typeof config].apiBaseUrl 
+export const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://alphagrowth-scraper.onrender.com' 

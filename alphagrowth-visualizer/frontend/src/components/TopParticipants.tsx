@@ -21,21 +21,27 @@ const TopParticipants = () => {
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
-    const fetchParticipants = async () => {
+    const fetchData = async () => {
       try {
+        console.log('Fetching participants from:', `${apiBaseUrl}/api/participants`)
         const response = await axios.get<Participant[]>(`${apiBaseUrl}/api/participants`)
-        console.log('Fetched participants:', response.data)
         setParticipants(response.data)
         setError(null)
       } catch (error) {
         console.error('Error fetching participants:', error)
-        setError('Failed to load participants')
+        if (axios.isAxiosError(error)) {
+          console.error('Response data:', error.response?.data)
+          console.error('Response status:', error.response?.status)
+          setError(`Failed to load participants: ${error.response?.data?.message || error.message}`)
+        } else {
+          setError('Failed to load participants: Unknown error')
+        }
       } finally {
         setLoading(false)
       }
     }
 
-    fetchParticipants()
+    fetchData()
   }, [])
 
   // Memoize filtered participants to prevent unnecessary recalculations
