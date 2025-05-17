@@ -90,11 +90,11 @@ const TopParticipants = () => {
     return filtered.sort((a, b) => {
       switch (activeTab) {
         case 'hosts':
-          return b.host_spaces - a.host_spaces
+          return (b.host_spaces || 0) - (a.host_spaces || 0)
         case 'speakers':
-          return b.speaker_spaces - a.speaker_spaces
+          return (b.speaker_spaces || 0) - (a.speaker_spaces || 0)
         case 'overall':
-          return b.spaces - a.spaces
+          return (b.spaces || 0) - (a.spaces || 0)
         default:
           return 0
       }

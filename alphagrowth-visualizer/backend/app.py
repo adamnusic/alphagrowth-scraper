@@ -107,12 +107,13 @@ def get_participants():
         if not participants:
             return jsonify({"error": "No participant data available"}), 500
         
-        # Ensure each participant has all required fields
+        # Ensure each participant has all required fields and calculate host_spaces
         for participant in participants:
             if 'id' not in participant:
                 participant['id'] = str(participants.index(participant) + 1)
             if 'host_spaces' not in participant:
-                participant['host_spaces'] = 0
+                # Calculate host_spaces as the difference between total spaces and speaker_spaces
+                participant['host_spaces'] = participant.get('spaces', 0) - participant.get('speaker_spaces', 0)
             if 'speaker_spaces' not in participant:
                 participant['speaker_spaces'] = 0
             if 'twitter' not in participant:
