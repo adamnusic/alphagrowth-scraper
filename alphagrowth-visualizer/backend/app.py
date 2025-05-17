@@ -118,6 +118,18 @@ def get_participants():
                 participant['speaker_spaces'] = 0
             if 'twitter' not in participant:
                 participant['twitter'] = None
+            if 'role' not in participant:
+                # Determine role based on spaces
+                if participant.get('host_spaces', 0) > 0 and participant.get('speaker_spaces', 0) > 0:
+                    participant['role'] = 'both'
+                elif participant.get('host_spaces', 0) > 0:
+                    participant['role'] = 'host'
+                else:
+                    participant['role'] = 'speaker'
+        
+        # Log the first few participants for debugging
+        logger.info(f"First 3 participants: {participants[:3]}")
+        logger.info(f"Total participants: {len(participants)}")
         
         return jsonify(participants)
     except Exception as e:

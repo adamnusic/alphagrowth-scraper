@@ -35,7 +35,17 @@ const TopParticipants = () => {
             },
             withCredentials: false
           })
-          console.log('Fetched participants:', response.data)
+          
+          // Validate the response data
+          if (!response.data || !Array.isArray(response.data)) {
+            console.error('Invalid response data:', response.data)
+            throw new Error('Invalid response data format')
+          }
+          
+          // Log the first few items to verify data structure
+          console.log('First 3 participants:', response.data.slice(0, 3))
+          console.log('Total participants:', response.data.length)
+          
           setParticipants(response.data)
           setError(null)
           break
