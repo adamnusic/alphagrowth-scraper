@@ -43,10 +43,11 @@ def get_data_dir():
     # List all possible data directory locations
     possible_data_dirs = [
         os.path.join(current_dir, 'data'),  # Local development
-        os.path.join('/opt/render/project/src/alphagrowth-visualizer/backend/data'),  # Render deployment
+        os.path.join('/opt/render/project/src/alphagrowth-visualizer/data'),  # Render deployment
         os.path.join('/opt/render/project/src/data'),  # Root data directory
         os.path.join(current_dir, '..', 'data'),  # Parent directory data
-        os.path.join(os.getcwd(), 'data')  # Current working directory data
+        os.path.join(os.getcwd(), 'data'),  # Current working directory data
+        os.path.join('/opt/render/project/src/alphagrowth-scraper/alphagrowth-visualizer/data')  # Render deployment alternative
     ]
     
     # Log all possible locations
@@ -186,9 +187,20 @@ def get_total_spaces():
         data_dir = get_data_dir()
         file_path = os.path.join(data_dir, 'network.csv')
         
+        logger.info(f"Looking for network.csv at: {file_path}")
         if not os.path.exists(file_path):
             logger.error(f"network.csv not found at: {file_path}")
-            return None
+            # Try to find the file in the repository
+            repo_root = '/opt/render/project/src'
+            for root, dirs, files in os.walk(repo_root):
+                if 'network.csv' in files:
+                    found_path = os.path.join(root, 'network.csv')
+                    logger.info(f"Found network.csv in repository at: {found_path}")
+                    file_path = found_path
+                    break
+            else:
+                logger.error(f"Could not find network.csv anywhere in the repository")
+                return None
             
         with open(file_path, 'r') as f:
             # Skip header
