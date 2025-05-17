@@ -38,13 +38,19 @@ def convert_csv_to_json():
         
         for _, row in participants_df.iterrows():
             name = row['name']
-            role = row['role']
+            role = row['role'].lower()  # Convert to lowercase
+            if role == 'speakers':  # Fix plural form
+                role = 'speaker'
+            
             participant_stats[name]['spaces'] += 1
             participant_stats[name]['roles'].add(role)
+            
+            # Count spaces by role
             if role == 'host':
                 participant_stats[name]['host_spaces'] += 1
             elif role == 'speaker':
                 participant_stats[name]['speaker_spaces'] += 1
+            
             if pd.notna(row['twitter_link']):
                 participant_stats[name]['twitter'] = row['twitter_link']
         
