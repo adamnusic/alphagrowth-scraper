@@ -15,26 +15,29 @@ CORS(app)  # Enable CORS for all routes
 
 def load_json_data(filename):
     try:
+        # Get the absolute path of the current file
+        current_file = os.path.abspath(__file__)
+        current_dir = os.path.dirname(current_file)
+        
         # Try multiple possible paths
         possible_paths = [
-            os.path.join(os.path.dirname(__file__), 'data', filename),  # Local development
-            os.path.join('/opt/render/project/src', 'data', filename),   # Render deployment
-            os.path.join('/opt/render/project/src/alphagrowth-visualizer/backend/data', filename),  # Render backend
-            os.path.join(os.getcwd(), 'data', filename),                 # Current directory
-            os.path.join('/opt/render/project/src/alphagrowth-visualizer/data', filename)  # Render visualizer
+            os.path.join(current_dir, 'data', filename),  # Local development
+            os.path.join('/opt/render/project/src/alphagrowth-visualizer/backend/data', filename),  # Render deployment
+            os.path.join(os.getcwd(), 'data', filename)  # Current directory
         ]
         
         # Debug logging
+        logger.info(f"Current file: {current_file}")
+        logger.info(f"Current directory: {current_dir}")
         logger.info(f"Current working directory: {os.getcwd()}")
         logger.info(f"Looking for file in possible paths: {possible_paths}")
         
         # List contents of important directories
         for dir_path in [
-            '/opt/render/project/src',
-            '/opt/render/project/src/alphagrowth-visualizer',
+            current_dir,
+            os.path.join(current_dir, 'data'),
             '/opt/render/project/src/alphagrowth-visualizer/backend',
-            '/opt/render/project/src/alphagrowth-visualizer/backend/data',
-            os.path.join(os.getcwd(), 'data')
+            '/opt/render/project/src/alphagrowth-visualizer/backend/data'
         ]:
             if os.path.exists(dir_path):
                 logger.info(f"Contents of {dir_path}: {os.listdir(dir_path)}")
