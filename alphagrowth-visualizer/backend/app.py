@@ -187,20 +187,10 @@ def get_stats():
         if not participants:
             return jsonify({"error": "No participant data available"}), 500
 
-        # Log raw data for debugging
-        logger.info("Raw participant data sample:")
-        for p in participants[:3]:
-            logger.info(f"Raw participant: {p}")
-
         # Clean and validate participants first
         cleaned_participants = []
         for participant in participants:
             try:
-                # Log raw values before conversion
-                logger.info(f"Raw values for {participant.get('name', 'unknown')}:")
-                logger.info(f"  spaces: {participant.get('spaces')} (type: {type(participant.get('spaces'))})")
-                logger.info(f"  speaker_spaces: {participant.get('speaker_spaces')} (type: {type(participant.get('speaker_spaces'))})")
-
                 cleaned = {
                     'id': str(participant.get('id', '')),
                     'name': str(participant.get('name', '')),
@@ -217,12 +207,6 @@ def get_stats():
                 if cleaned['role'] not in ['host', 'speaker', 'both']:
                     cleaned['role'] = 'both' if cleaned['host_spaces'] > 0 and cleaned['speaker_spaces'] > 0 else \
                                     'host' if cleaned['host_spaces'] > 0 else 'speaker'
-                
-                # Log cleaned values
-                logger.info(f"Cleaned values for {cleaned['name']}:")
-                logger.info(f"  spaces: {cleaned['spaces']}")
-                logger.info(f"  speaker_spaces: {cleaned['speaker_spaces']}")
-                logger.info(f"  host_spaces: {cleaned['host_spaces']}")
                 
                 cleaned_participants.append(cleaned)
             except (ValueError, TypeError) as e:
@@ -241,33 +225,17 @@ def get_stats():
         total_speakers = len(speakers)
         total_both = len(both)
         
-        # Calculate spaces with detailed logging
-        total_spaces = 0
-        total_host_spaces = 0
-        total_speaker_spaces = 0
-        
-        for p in cleaned_participants:
-            total_spaces += p['spaces']
-            total_host_spaces += p['host_spaces']
-            total_speaker_spaces += p['speaker_spaces']
-            logger.info(f"Running totals after {p['name']}:")
-            logger.info(f"  total_spaces: {total_spaces}")
-            logger.info(f"  total_host_spaces: {total_host_spaces}")
-            logger.info(f"  total_speaker_spaces: {total_speaker_spaces}")
+        # Calculate spaces
+        total_spaces = sum(p['spaces'] for p in cleaned_participants)
+        total_host_spaces = sum(p['host_spaces'] for p in cleaned_participants)
+        total_speaker_spaces = sum(p['speaker_spaces'] for p in cleaned_participants)
         
         # Find most active host and speaker
         most_active_host = max(hosts, key=lambda x: x['host_spaces']) if hosts else {'name': 'N/A', 'host_spaces': 0}
         most_active_speaker = max(speakers, key=lambda x: x['speaker_spaces']) if speakers else {'name': 'N/A', 'speaker_spaces': 0}
 
-        # Log final stats
-        logger.info("Final stats calculation:")
-        logger.info(f"Total participants: {total_participants}")
-        logger.info(f"Total hosts: {total_hosts}")
-        logger.info(f"Total speakers: {total_speakers}")
-        logger.info(f"Total both: {total_both}")
-        logger.info(f"Total spaces: {total_spaces}")
-        logger.info(f"Total host spaces: {total_host_spaces}")
-        logger.info(f"Total speaker spaces: {total_speaker_spaces}")
+        # Log final stats only
+        logger.info(f"Final stats: participants={total_participants}, hosts={total_hosts}, speakers={total_speakers}, spaces={total_spaces}")
 
         return jsonify({
             'total_participants': total_participants,

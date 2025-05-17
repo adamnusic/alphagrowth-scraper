@@ -31,7 +31,7 @@ const ParticipationStats = () => {
         try {
           console.log('Fetching stats from:', `${apiBaseUrl}/api/stats`)
           const response = await axios.get<Stats>(`${apiBaseUrl}/api/stats`, {
-            timeout: 5000,
+            timeout: 15000,
             headers: {
               'Accept': 'application/json',
               'Content-Type': 'application/json'

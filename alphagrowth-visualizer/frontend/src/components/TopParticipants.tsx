@@ -28,7 +28,7 @@ const TopParticipants = () => {
         try {
           console.log('Fetching participants from:', `${apiBaseUrl}/api/participants`)
           const response = await axios.get<Participant[]>(`${apiBaseUrl}/api/participants`, {
-            timeout: 5000,
+            timeout: 15000,
             headers: {
               'Accept': 'application/json',
               'Content-Type': 'application/json'
