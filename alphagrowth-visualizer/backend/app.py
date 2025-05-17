@@ -182,19 +182,57 @@ def get_stats():
         if not participants:
             return jsonify({"error": "No participant data available"}), 500
 
+        # Clean and validate participants first
+        cleaned_participants = []
+        for participant in participants:
+            try:
+                cleaned = {
+                    'id': str(participant.get('id', '')),
+                    'name': str(participant.get('name', '')),
+                    'role': str(participant.get('role', 'speaker')),
+                    'spaces': int(participant.get('spaces', 0)),
+                    'speaker_spaces': int(participant.get('speaker_spaces', 0)),
+                    'twitter': str(participant.get('twitter', '')) if participant.get('twitter') else None
+                }
+                
+                # Calculate host_spaces
+                cleaned['host_spaces'] = cleaned['spaces'] - cleaned['speaker_spaces']
+                
+                # Validate role
+                if cleaned['role'] not in ['host', 'speaker', 'both']:
+                    cleaned['role'] = 'both' if cleaned['host_spaces'] > 0 and cleaned['speaker_spaces'] > 0 else \
+                                    'host' if cleaned['host_spaces'] > 0 else 'speaker'
+                
+                cleaned_participants.append(cleaned)
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error cleaning participant data: {str(e)}")
+                continue
+
         # Calculate stats
-        total_participants = len(participants)
-        total_hosts = sum(1 for p in participants if p['role'] == 'host')
-        total_speakers = sum(1 for p in participants if p['role'] == 'speaker')
-        total_both = sum(1 for p in participants if p['role'] == 'both')
-        total_spaces = sum(p['spaces'] for p in participants)
+        total_participants = len(cleaned_participants)
+        total_hosts = sum(1 for p in cleaned_participants if p['role'] in ['host', 'both'])
+        total_speakers = sum(1 for p in cleaned_participants if p['role'] in ['speaker', 'both'])
+        total_both = sum(1 for p in cleaned_participants if p['role'] == 'both')
+        total_spaces = sum(p['spaces'] for p in cleaned_participants)
+        total_host_spaces = sum(p['host_spaces'] for p in cleaned_participants)
+        total_speaker_spaces = sum(p['speaker_spaces'] for p in cleaned_participants)
         
         # Find most active host and speaker
-        hosts = [p for p in participants if p['role'] in ['host', 'both']]
-        speakers = [p for p in participants if p['role'] in ['speaker', 'both']]
+        hosts = [p for p in cleaned_participants if p['role'] in ['host', 'both']]
+        speakers = [p for p in cleaned_participants if p['role'] in ['speaker', 'both']]
         
-        most_active_host = max(hosts, key=lambda x: x['spaces']) if hosts else {'name': 'N/A', 'spaces': 0}
-        most_active_speaker = max(speakers, key=lambda x: x['spaces']) if speakers else {'name': 'N/A', 'spaces': 0}
+        most_active_host = max(hosts, key=lambda x: x['host_spaces']) if hosts else {'name': 'N/A', 'host_spaces': 0}
+        most_active_speaker = max(speakers, key=lambda x: x['speaker_spaces']) if speakers else {'name': 'N/A', 'speaker_spaces': 0}
+
+        # Log stats for debugging
+        logger.info(f"Stats calculation:")
+        logger.info(f"Total participants: {total_participants}")
+        logger.info(f"Total hosts: {total_hosts}")
+        logger.info(f"Total speakers: {total_speakers}")
+        logger.info(f"Total both: {total_both}")
+        logger.info(f"Total spaces: {total_spaces}")
+        logger.info(f"Total host spaces: {total_host_spaces}")
+        logger.info(f"Total speaker spaces: {total_speaker_spaces}")
 
         return jsonify({
             'total_participants': total_participants,
@@ -202,14 +240,16 @@ def get_stats():
             'total_speakers': total_speakers,
             'total_both': total_both,
             'total_spaces': total_spaces,
+            'total_host_spaces': total_host_spaces,
+            'total_speaker_spaces': total_speaker_spaces,
             'average_participants_per_space': total_spaces / total_participants if total_participants > 0 else 0,
             'most_active_host': {
                 'name': most_active_host['name'],
-                'spaces': most_active_host['spaces']
+                'spaces': most_active_host['host_spaces']
             },
             'most_active_speaker': {
                 'name': most_active_speaker['name'],
-                'spaces': most_active_speaker['spaces']
+                'spaces': most_active_speaker['speaker_spaces']
             }
         })
     except Exception as e:
