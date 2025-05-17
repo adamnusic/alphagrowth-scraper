@@ -10,13 +10,22 @@ logger = logging.getLogger(__name__)
 
 def convert_csv_to_json():
     try:
-        # Create data directory if it doesn't exist
-        data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
-        os.makedirs(data_dir, exist_ok=True)
+        # Get the source and destination directories
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        backend_dir = os.path.dirname(script_dir)
+        source_data_dir = '/opt/render/project/src/data'  # Where the CSV files are
+        dest_data_dir = os.path.join(backend_dir, 'data')  # Where to save JSON files
+        
+        # Create destination directory if it doesn't exist
+        os.makedirs(dest_data_dir, exist_ok=True)
+        
+        logger.info(f"Source data directory: {source_data_dir}")
+        logger.info(f"Destination data directory: {dest_data_dir}")
+        logger.info(f"Source directory contents: {os.listdir(source_data_dir)}")
 
         # Convert participants data
         logger.info("Reading participants CSV...")
-        participants_df = pd.read_csv(os.path.join(data_dir, 'participants.csv'))
+        participants_df = pd.read_csv(os.path.join(source_data_dir, 'participants_20250516.csv'))
         
         # Group by name to count spaces and determine roles
         participant_stats = defaultdict(lambda: {'spaces': 0, 'roles': set(), 'twitter': ''})
@@ -52,7 +61,7 @@ def convert_csv_to_json():
         logger.info(f"Processed {len(participants_data)} participants")
         
         # Save participants data
-        with open(os.path.join(data_dir, 'participants_data.json'), 'w') as f:
+        with open(os.path.join(dest_data_dir, 'participants_data.json'), 'w') as f:
             json.dump(participants_data, f, indent=2)
         logger.info("Saved participants data to JSON")
 
@@ -82,13 +91,15 @@ def convert_csv_to_json():
         logger.info(f"Processed {len(network_data['nodes'])} nodes and {len(network_data['links'])} links")
         
         # Save network data
-        with open(os.path.join(data_dir, 'network_data.json'), 'w') as f:
+        with open(os.path.join(dest_data_dir, 'network_data.json'), 'w') as f:
             json.dump(network_data, f, indent=2)
         logger.info("Saved network data to JSON")
         
         return True
     except Exception as e:
         logger.error(f"Error converting CSV to JSON: {str(e)}")
+        logger.error(f"Current directory: {os.getcwd()}")
+        logger.error(f"Directory contents: {os.listdir('.')}")
         return False
 
 if __name__ == '__main__':
