@@ -26,22 +26,40 @@ const ParticipationStats = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        console.log('Fetching stats from:', `${apiBaseUrl}/api/stats`)
-        const response = await axios.get<Stats>(`${apiBaseUrl}/api/stats`)
-        setStats(response.data)
-        setError(null)
-      } catch (error) {
-        console.error('Error fetching stats:', error)
-        if (axios.isAxiosError(error)) {
-          console.error('Response data:', error.response?.data)
-          console.error('Response status:', error.response?.status)
-          setError(`Failed to load stats: ${error.response?.data?.message || error.message}`)
-        } else {
-          setError('Failed to load stats: Unknown error')
+      let retries = 3
+      while (retries > 0) {
+        try {
+          console.log('Fetching stats from:', `${apiBaseUrl}/api/stats`)
+          const response = await axios.get<Stats>(`${apiBaseUrl}/api/stats`, {
+            timeout: 5000, // 5 second timeout
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          })
+          setStats(response.data)
+          setError(null)
+          break
+        } catch (error) {
+          console.error('Error fetching stats:', error)
+          if (axios.isAxiosError(error)) {
+            console.error('Response data:', error.response?.data)
+            console.error('Response status:', error.response?.status)
+            console.error('Response headers:', error.response?.headers)
+            if (retries > 1) {
+              console.log(`Retrying... ${retries - 1} attempts left`)
+              retries--
+              await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second before retry
+              continue
+            }
+            setError(`Failed to load stats: ${error.response?.data?.message || error.message}`)
+          } else {
+            setError('Failed to load stats: Unknown error')
+          }
+        } finally {
+          setLoading(false)
         }
-      } finally {
-        setLoading(false)
+        break
       }
     }
 
@@ -64,7 +82,12 @@ const ParticipationStats = () => {
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-xl font-semibold mb-4">Participation Statistics</h2>
-        <div className="text-red-500">{error}</div>
+        <div className="text-amber-600 bg-amber-50 p-4 rounded-lg">
+          <p className="font-medium">No data available yet</p>
+          <p className="text-sm mt-1">
+            The data collection process is still running. Please check back later.
+          </p>
+        </div>
       </div>
     )
   }

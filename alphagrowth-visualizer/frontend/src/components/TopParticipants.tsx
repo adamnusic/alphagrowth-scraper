@@ -22,6 +22,43 @@ const TopParticipants = () => {
 
   useEffect(() => {
     const fetchData = async () => {
+      let retries = 3
+      while (retries > 0) {
+        try {
+          console.log('Fetching participants from:', `${apiBaseUrl}/api/participants`)
+          const response = await axios.get<Participant[]>(`${apiBaseUrl}/api/participants`, {
+            timeout: 5000, // 5 second timeout
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          })
+          setParticipants(response.data)
+          setError(null)
+          break
+        } catch (error) {
+          console.error('Error fetching participants:', error)
+          if (axios.isAxiosError(error)) {
+            console.error('Response data:', error.response?.data)
+            console.error('Response status:', error.response?.status)
+            console.error('Response headers:', error.response?.headers)
+            if (retries > 1) {
+              console.log(`Retrying... ${retries - 1} attempts left`)
+              retries--
+              await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second before retry
+              continue
+            }
+            setError(`Failed to load participants: ${error.response?.data?.message || error.message}`)
+          } else {
+            setError('Failed to load participants: Unknown error')
+          }
+        } finally {
+          setLoading(false)
+        }
+        break
+      }
+    }
+
       try {
         console.log('Fetching participants from:', `${apiBaseUrl}/api/participants`)
         const response = await axios.get<Participant[]>(`${apiBaseUrl}/api/participants`)
@@ -104,7 +141,12 @@ const TopParticipants = () => {
     return (
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-xl font-semibold mb-4">Top Participants</h2>
-        <div className="text-red-500">{error}</div>
+        <div className="text-amber-600 bg-amber-50 p-4 rounded-lg">
+          <p className="font-medium">No data available yet</p>
+          <p className="text-sm mt-1">
+            The data collection process is still running. Please check back later.
+          </p>
+        </div>
       </div>
     )
   }
