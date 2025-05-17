@@ -181,36 +181,33 @@ def get_participant_details(participant_id):
     return jsonify({'error': 'Participant not found'}), 404
 
 def get_total_spaces():
-    """Get the total number of spaces from network.csv."""
+    """Get the total number of spaces from total_spaces.txt."""
     try:
         data_dir = get_data_dir()
-        file_path = os.path.join(data_dir, 'network.csv')
+        file_path = os.path.join(data_dir, 'total_spaces.txt')
         
-        logger.info(f"Looking for network.csv at: {file_path}")
+        logger.info(f"Looking for total_spaces.txt at: {file_path}")
         if not os.path.exists(file_path):
-            logger.error(f"network.csv not found at: {file_path}")
+            logger.error(f"total_spaces.txt not found at: {file_path}")
             # Try to find the file in the repository
             repo_root = '/opt/render/project/src'
             for root, dirs, files in os.walk(repo_root):
-                if 'network.csv' in files:
-                    found_path = os.path.join(root, 'network.csv')
-                    logger.info(f"Found network.csv in repository at: {found_path}")
+                if 'total_spaces.txt' in files:
+                    found_path = os.path.join(root, 'total_spaces.txt')
+                    logger.info(f"Found total_spaces.txt in repository at: {found_path}")
                     file_path = found_path
                     break
             else:
-                logger.error(f"Could not find network.csv anywhere in the repository")
+                logger.error(f"Could not find total_spaces.txt anywhere in the repository")
                 return None
             
         with open(file_path, 'r') as f:
-            # Skip header
-            next(f)
-            # Count lines
-            total_spaces = sum(1 for _ in f)
-            logger.info(f"Total spaces from network.csv: {total_spaces}")
+            total_spaces = int(f.read().strip())
+            logger.info(f"Total spaces from total_spaces.txt: {total_spaces}")
             return total_spaces
             
     except Exception as e:
-        logger.error(f"Error reading network.csv: {str(e)}")
+        logger.error(f"Error reading total_spaces.txt: {str(e)}")
         logger.error(traceback.format_exc())
         return None
 
@@ -221,10 +218,10 @@ def get_stats():
         if not participants:
             return jsonify({"error": "No participant data available"}), 500
 
-        # Get total spaces from network.csv
+        # Get total spaces from total_spaces.txt
         total_spaces = get_total_spaces()
         if total_spaces is None:
-            return jsonify({"error": "Could not read total spaces from network.csv"}), 500
+            return jsonify({"error": "Could not read total spaces from total_spaces.txt"}), 500
 
         # Clean and validate participants first
         cleaned_participants = []
