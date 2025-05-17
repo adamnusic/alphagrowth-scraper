@@ -280,7 +280,7 @@ def get_stats():
             'total_spaces': total_spaces,
             'total_host_spaces': total_host_spaces,
             'total_speaker_spaces': total_speaker_spaces,
-            'average_participants_per_space': total_spaces / total_participants if total_participants > 0 else 0,
+            'average_participants_per_space': total_participants / total_spaces if total_spaces > 0 else 0,
             'most_active_host': {
                 'name': most_active_host['name'],
                 'spaces': most_active_host['host_spaces']
