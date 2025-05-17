@@ -126,7 +126,7 @@ const NetworkGraph = ({ onSelectParticipant }: NetworkGraphProps) => {
     node.append('circle')
       .attr('r', (d: any) => Math.sqrt(d.size) * 2)
       .attr('fill', (d: any) => d.color)
-          .on('click', (event: any, d: any) => onSelectParticipant(d.id))
+          .on('click', (_event: any, d: any) => onSelectParticipant(d.id))
 
     // Add labels to nodes
     node.append('text')
