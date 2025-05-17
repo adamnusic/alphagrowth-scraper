@@ -59,38 +59,21 @@ const TopParticipants = () => {
       }
     }
 
-      try {
-        console.log('Fetching participants from:', `${apiBaseUrl}/api/participants`)
-        const response = await axios.get<Participant[]>(`${apiBaseUrl}/api/participants`)
-        setParticipants(response.data)
-        setError(null)
-      } catch (error) {
-        console.error('Error fetching participants:', error)
-        if (axios.isAxiosError(error)) {
-          console.error('Response data:', error.response?.data)
-          console.error('Response status:', error.response?.status)
-          setError(`Failed to load participants: ${error.response?.data?.message || error.message}`)
-        } else {
-          setError('Failed to load participants: Unknown error')
-        }
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchData()
   }, [])
 
   // Memoize filtered participants to prevent unnecessary recalculations
   const filteredParticipants = useMemo(() => {
+    if (!participants) return []
+    
     let filtered: Participant[] = []
     
     switch (activeTab) {
       case 'hosts':
-        filtered = participants.filter(p => p.role === 'host' || p.role === 'both')
+        filtered = participants.filter((p: Participant) => p.role === 'host' || p.role === 'both')
         break
       case 'speakers':
-        filtered = participants.filter(p => p.role === 'speaker' || p.role === 'both')
+        filtered = participants.filter((p: Participant) => p.role === 'speaker' || p.role === 'both')
         break
       case 'overall':
         filtered = [...participants]
@@ -199,36 +182,27 @@ const TopParticipants = () => {
               key={`${activeTab}-${participant.name}`}
               className="flex items-center justify-between p-3 bg-gray-50 rounded-lg mb-2"
             >
-              <div className="flex items-center space-x-3">
-                <span className="text-gray-500 font-medium w-8">#{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</span>
-                <span className="font-medium min-w-[200px]">{participant.name}</span>
-                <span className="text-sm text-gray-500">
-                  ({participant.role === 'both' ? 'Host & Speaker' : participant.role})
-                </span>
-                {participant.twitter && (
-                  <a
-                    href={participant.twitter}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                    </svg>
-                  </a>
-                )}
+              <div className="flex items-center space-x-4">
+                <span className="text-gray-500 font-medium">{index + 1 + (currentPage - 1) * ITEMS_PER_PAGE}.</span>
+                <div>
+                  <h3 className="font-medium text-gray-900">{participant.name}</h3>
+                  <p className="text-sm text-gray-500">
+                    {activeTab === 'hosts' && `${participant.host_spaces} host spaces`}
+                    {activeTab === 'speakers' && `${participant.speaker_spaces} speaker spaces`}
+                    {activeTab === 'overall' && `${participant.spaces} total spaces`}
+                  </p>
+                </div>
               </div>
-              <span className="text-sm font-medium text-gray-900 ml-4">
-                {activeTab === 'hosts' ? participant.host_spaces :
-                 activeTab === 'speakers' ? participant.speaker_spaces :
-                 participant.spaces} spaces
-                {participant.role === 'both' && (
-                  <span className="text-gray-500 ml-2">
-                    ({participant.host_spaces} hosted, {participant.speaker_spaces} spoken)
-                  </span>
-                )}
-              </span>
+              {participant.twitter && (
+                <a
+                  href={participant.twitter}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800"
+                >
+                  Twitter
+                </a>
+              )}
             </div>
           ))}
         </div>
@@ -236,51 +210,32 @@ const TopParticipants = () => {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="mt-4 flex flex-col sm:flex-row items-center justify-between border-t border-gray-200 pt-4">
-          <div className="mb-4 sm:mb-0">
-            <p className="text-sm text-gray-700">
-              Showing <span className="font-medium">{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to{' '}
-              <span className="font-medium">
-                {Math.min(currentPage * ITEMS_PER_PAGE, filteredParticipants.length)}
-              </span>{' '}
-              of <span className="font-medium">{filteredParticipants.length}</span> results
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setCurrentPage(1)}
-              disabled={currentPage === 1}
-              className="relative inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              First
-            </button>
-            <button
-              onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
-              disabled={currentPage === 1}
-              className="relative inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              className="relative inline-flex items-center px-3 py-2 border text-sm font-medium z-10 bg-blue-50 border-blue-500 text-blue-600"
-            >
-              {currentPage}
-            </button>
-            <button
-              onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
-              disabled={currentPage === totalPages}
-              className="relative inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Next
-            </button>
-            <button
-              onClick={() => setCurrentPage(totalPages)}
-              disabled={currentPage === totalPages}
-              className="relative inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-            >
-              Last
-            </button>
-          </div>
+        <div className="mt-4 flex justify-center space-x-2">
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className={`px-3 py-1 rounded ${
+              currentPage === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+            }`}
+          >
+            Previous
+          </button>
+          <span className="px-3 py-1 text-gray-600">
+            Page {currentPage} of {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className={`px-3 py-1 rounded ${
+              currentPage === totalPages
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+            }`}
+          >
+            Next
+          </button>
         </div>
       )}
     </div>
