@@ -31,7 +31,8 @@ const TopParticipants = () => {
             headers: {
               'Accept': 'application/json',
               'Content-Type': 'application/json'
-            }
+            },
+            withCredentials: false // Don't send credentials
           })
           setParticipants(response.data)
           setError(null)

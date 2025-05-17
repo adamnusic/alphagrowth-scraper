@@ -31,11 +31,12 @@ const ParticipationStats = () => {
         try {
           console.log('Fetching stats from:', `${apiBaseUrl}/api/stats`)
           const response = await axios.get<Stats>(`${apiBaseUrl}/api/stats`, {
-            timeout: 5000, // 5 second timeout
+            timeout: 5000,
             headers: {
               'Accept': 'application/json',
               'Content-Type': 'application/json'
-            }
+            },
+            withCredentials: false // Don't send credentials
           })
           setStats(response.data)
           setError(null)

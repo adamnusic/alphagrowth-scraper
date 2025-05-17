@@ -11,7 +11,19 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+
+# Configure CORS
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://delicate-marshmallow-d974fc.netlify.app",
+            "http://localhost:5173"  # For local development
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
 
 def get_data_dir():
     """Get the absolute path to the data directory."""
@@ -158,4 +170,4 @@ def index():
     return "AlphaGrowth Network API is running."
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=10000) 
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000))) 
