@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as d3 from 'd3'
 import axios from 'axios'
+import { apiBaseUrl } from '../config'
 
 interface NetworkGraphProps {
   onSelectParticipant: (id: string) => void
@@ -25,8 +26,6 @@ interface NetworkData {
   links: NetworkLink[]
 }
 
-const API_BASE_URL = 'http://localhost:5002'
-
 const NetworkGraph = ({ onSelectParticipant }: NetworkGraphProps) => {
   const svgRef = useRef<SVGSVGElement>(null)
   const [error, setError] = useState<string | null>(null)
@@ -38,13 +37,13 @@ const NetworkGraph = ({ onSelectParticipant }: NetworkGraphProps) => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get<NetworkData>(`${API_BASE_URL}/api/network`)
+        const response = await axios.get<NetworkData>(`${apiBaseUrl}/api/network`)
         setNetworkData(response.data)
         setError(null)
       } catch (error) {
         console.error('Error fetching network data:', error)
         setError('Failed to load network data')
-        }
+      }
     }
 
     fetchData()

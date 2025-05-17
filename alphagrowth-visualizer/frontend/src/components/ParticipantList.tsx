@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import { apiBaseUrl } from '../config'
 
 interface ParticipantListProps {
   onSelectParticipant: (id: string) => void
@@ -16,8 +17,6 @@ interface Participant {
   node_color: string
 }
 
-const API_BASE_URL = 'http://localhost:5002'
-
 const ParticipantList = ({ onSelectParticipant }: ParticipantListProps) => {
   const [participants, setParticipants] = useState<Participant[]>([])
   const [loading, setLoading] = useState(true)
@@ -28,7 +27,7 @@ const ParticipantList = ({ onSelectParticipant }: ParticipantListProps) => {
       setLoading(true)
       setError(null)
       try {
-        const response = await axios.get<Participant[]>(`${API_BASE_URL}/api/participants`)
+        const response = await axios.get<Participant[]>(`${apiBaseUrl}/api/participants`)
         console.log('Fetched participants data:', response.data)
         if (Array.isArray(response.data)) {
           setParticipants(response.data)

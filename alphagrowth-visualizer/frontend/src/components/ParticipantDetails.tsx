@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import { apiBaseUrl } from '../config'
 
 interface ParticipantDetailsProps {
   participantId: string
@@ -24,7 +25,7 @@ const ParticipantDetails = ({ participantId }: ParticipantDetailsProps) => {
   useEffect(() => {
     const fetchDetails = async () => {
       try {
-        const response = await axios.get<ParticipantDetails>(`/api/participants/${participantId}`)
+        const response = await axios.get<ParticipantDetails>(`${apiBaseUrl}/api/participants/${participantId}`)
         setDetails(response.data)
         setLoading(false)
       } catch (error) {

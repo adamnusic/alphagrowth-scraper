@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import axios from 'axios'
+import { apiBaseUrl } from '../config'
 
 interface Participant {
   name: string
@@ -28,7 +29,7 @@ const TopParticipants = () => {
   useEffect(() => {
     const fetchParticipants = async () => {
       try {
-        const response = await axios.get<Participant[]>(`${API_BASE_URL}/api/participants`)
+        const response = await axios.get<Participant[]>(`${apiBaseUrl}/api/participants`)
         console.log('Fetched participants:', response.data)
         setParticipants(response.data)
         setError(null)

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import axios from 'axios'
+import { apiBaseUrl } from '../config'
 
 interface Stats {
   total_participants: number
@@ -18,8 +19,6 @@ interface Stats {
   }
 }
 
-const API_BASE_URL = 'http://localhost:5002'
-
 const ParticipationStats = () => {
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
@@ -28,7 +27,7 @@ const ParticipationStats = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await axios.get<Stats>(`${API_BASE_URL}/api/stats`)
+        const response = await axios.get<Stats>(`${apiBaseUrl}/api/stats`)
         setStats(response.data)
         setError(null)
       } catch (error) {
