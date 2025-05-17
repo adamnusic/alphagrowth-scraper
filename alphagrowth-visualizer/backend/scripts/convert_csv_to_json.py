@@ -28,12 +28,23 @@ def convert_csv_to_json():
         participants_df = pd.read_csv(os.path.join(source_data_dir, 'participants_20250516.csv'))
         
         # Group by name to count spaces and determine roles
-        participant_stats = defaultdict(lambda: {'spaces': 0, 'roles': set(), 'twitter': ''})
+        participant_stats = defaultdict(lambda: {
+            'spaces': 0,
+            'roles': set(),
+            'twitter': '',
+            'host_spaces': 0,
+            'speaker_spaces': 0
+        })
         
         for _, row in participants_df.iterrows():
             name = row['name']
+            role = row['role']
             participant_stats[name]['spaces'] += 1
-            participant_stats[name]['roles'].add(row['role'])
+            participant_stats[name]['roles'].add(role)
+            if role == 'host':
+                participant_stats[name]['host_spaces'] += 1
+            elif role == 'speaker':
+                participant_stats[name]['speaker_spaces'] += 1
             if pd.notna(row['twitter_link']):
                 participant_stats[name]['twitter'] = row['twitter_link']
         
@@ -53,6 +64,8 @@ def convert_csv_to_json():
                 'name': name,
                 'role': role,
                 'spaces': stats['spaces'],
+                'host_spaces': stats['host_spaces'],
+                'speaker_spaces': stats['speaker_spaces'],
                 'twitter': stats['twitter']
             }
             participants_data.append(participant)
