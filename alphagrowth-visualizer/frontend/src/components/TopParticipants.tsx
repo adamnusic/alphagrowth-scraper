@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import axios from 'axios'
 import { apiBaseUrl } from '../config'
 
@@ -10,12 +10,6 @@ interface Participant {
   speaker_spaces: number
   twitter: string | null
 }
-
-interface TopParticipantsProps {
-  onSelectParticipant: (participant: Participant) => void
-}
-
-const API_BASE_URL = 'http://localhost:5002'
 
 const ITEMS_PER_PAGE = 10
 

@@ -1,4 +1,3 @@
-import React from 'react'
 import ErrorBoundary from './components/ErrorBoundary'
 import ParticipationStats from './components/ParticipationStats'
 import TopParticipants from './components/TopParticipants'
