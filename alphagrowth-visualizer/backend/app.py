@@ -90,6 +90,16 @@ def load_json_data(filename):
             
         with open(file_path, 'r') as f:
             data = json.load(f)
+            # Ensure we're returning a list
+            if isinstance(data, str):
+                try:
+                    data = json.loads(data)
+                except json.JSONDecodeError:
+                    logger.error(f"Failed to parse JSON string from {filename}")
+                    return None
+            if not isinstance(data, list):
+                logger.error(f"Data from {filename} is not a list: {type(data)}")
+                return None
             logger.info(f"Successfully loaded {filename}")
             return data
             

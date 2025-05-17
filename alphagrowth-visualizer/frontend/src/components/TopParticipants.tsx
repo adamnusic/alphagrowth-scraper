@@ -42,8 +42,22 @@ const TopParticipants = () => {
             throw new Error('No data received')
           }
           
+          // Parse the data if it's a string
+          let participants = response.data
+          if (typeof participants === 'string') {
+            try {
+              participants = JSON.parse(participants)
+            } catch (e) {
+              console.error('Failed to parse participants data:', e)
+              throw new Error('Invalid data format')
+            }
+          }
+          
           // Ensure we have an array
-          const participants = Array.isArray(response.data) ? response.data : [response.data]
+          if (!Array.isArray(participants)) {
+            console.error('Participants is not an array:', participants)
+            throw new Error('Invalid data format')
+          }
           
           // Log the first few items to verify data structure
           console.log('First 3 participants:', participants.slice(0, 3))
