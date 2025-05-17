@@ -59,11 +59,26 @@ const TopParticipants = () => {
             throw new Error('Invalid data format')
           }
           
-          // Log the first few items to verify data structure
-          console.log('First 3 participants:', participants.slice(0, 3))
-          console.log('Total participants:', participants.length)
+          // Validate each participant
+          const validParticipants = participants.filter(p => {
+            if (!p || typeof p !== 'object') return false
+            if (!p.name || typeof p.name !== 'string') return false
+            if (!p.role || !['host', 'speaker', 'both'].includes(p.role)) return false
+            if (typeof p.spaces !== 'number' || isNaN(p.spaces)) return false
+            if (typeof p.speaker_spaces !== 'number' || isNaN(p.speaker_spaces)) return false
+            if (typeof p.host_spaces !== 'number' || isNaN(p.host_spaces)) return false
+            return true
+          })
           
-          setParticipants(participants)
+          // Log the first few items to verify data structure
+          console.log('First 3 participants:', validParticipants.slice(0, 3))
+          console.log('Total participants:', validParticipants.length)
+          
+          if (validParticipants.length === 0) {
+            throw new Error('No valid participants found')
+          }
+          
+          setParticipants(validParticipants)
           setError(null)
           break
         } catch (error) {

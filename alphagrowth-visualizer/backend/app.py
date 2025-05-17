@@ -127,31 +127,38 @@ def get_participants():
         if not participants:
             return jsonify({"error": "No participant data available"}), 500
         
-        # Ensure each participant has all required fields and calculate host_spaces
+        # Clean and validate each participant
+        cleaned_participants = []
         for participant in participants:
-            if 'id' not in participant:
-                participant['id'] = str(participants.index(participant) + 1)
-            if 'host_spaces' not in participant:
-                # Calculate host_spaces as the difference between total spaces and speaker_spaces
-                participant['host_spaces'] = participant.get('spaces', 0) - participant.get('speaker_spaces', 0)
-            if 'speaker_spaces' not in participant:
-                participant['speaker_spaces'] = 0
-            if 'twitter' not in participant:
-                participant['twitter'] = None
-            if 'role' not in participant:
-                # Determine role based on spaces
-                if participant.get('host_spaces', 0) > 0 and participant.get('speaker_spaces', 0) > 0:
-                    participant['role'] = 'both'
-                elif participant.get('host_spaces', 0) > 0:
-                    participant['role'] = 'host'
-                else:
-                    participant['role'] = 'speaker'
+            try:
+                # Ensure all required fields are present and valid
+                cleaned = {
+                    'id': str(participant.get('id', '')),
+                    'name': str(participant.get('name', '')),
+                    'role': str(participant.get('role', 'speaker')),
+                    'spaces': int(participant.get('spaces', 0)),
+                    'speaker_spaces': int(participant.get('speaker_spaces', 0)),
+                    'twitter': str(participant.get('twitter', '')) if participant.get('twitter') else None
+                }
+                
+                # Calculate host_spaces
+                cleaned['host_spaces'] = cleaned['spaces'] - cleaned['speaker_spaces']
+                
+                # Validate role
+                if cleaned['role'] not in ['host', 'speaker', 'both']:
+                    cleaned['role'] = 'both' if cleaned['host_spaces'] > 0 and cleaned['speaker_spaces'] > 0 else \
+                                    'host' if cleaned['host_spaces'] > 0 else 'speaker'
+                
+                cleaned_participants.append(cleaned)
+            except (ValueError, TypeError) as e:
+                logger.error(f"Error cleaning participant data: {str(e)}")
+                continue
         
         # Log the first few participants for debugging
-        logger.info(f"First 3 participants: {participants[:3]}")
-        logger.info(f"Total participants: {len(participants)}")
+        logger.info(f"First 3 participants: {cleaned_participants[:3]}")
+        logger.info(f"Total participants: {len(cleaned_participants)}")
         
-        return jsonify(participants)
+        return jsonify(cleaned_participants)
     except Exception as e:
         logger.error(f"Error in get_participants: {str(e)}")
         logger.error(traceback.format_exc())
