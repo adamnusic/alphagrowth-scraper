@@ -43,11 +43,10 @@ def get_data_dir():
     # List all possible data directory locations
     possible_data_dirs = [
         os.path.join(current_dir, 'data'),  # Local development
-        os.path.join('/opt/render/project/src/alphagrowth-visualizer/data'),  # Render deployment
+        os.path.join('/opt/render/project/src/alphagrowth-visualizer/backend/data'),  # Render deployment
         os.path.join('/opt/render/project/src/data'),  # Root data directory
         os.path.join(current_dir, '..', 'data'),  # Parent directory data
         os.path.join(os.getcwd(), 'data'),  # Current working directory data
-        os.path.join('/opt/render/project/src/alphagrowth-scraper/alphagrowth-visualizer/data')  # Render deployment alternative
     ]
     
     # Log all possible locations
