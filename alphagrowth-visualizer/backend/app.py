@@ -180,12 +180,40 @@ def get_participant_details(participant_id):
         return jsonify(participant)
     return jsonify({'error': 'Participant not found'}), 404
 
+def get_total_spaces():
+    """Get the total number of spaces from network.csv."""
+    try:
+        data_dir = get_data_dir()
+        file_path = os.path.join(data_dir, 'network.csv')
+        
+        if not os.path.exists(file_path):
+            logger.error(f"network.csv not found at: {file_path}")
+            return None
+            
+        with open(file_path, 'r') as f:
+            # Skip header
+            next(f)
+            # Count lines
+            total_spaces = sum(1 for _ in f)
+            logger.info(f"Total spaces from network.csv: {total_spaces}")
+            return total_spaces
+            
+    except Exception as e:
+        logger.error(f"Error reading network.csv: {str(e)}")
+        logger.error(traceback.format_exc())
+        return None
+
 @app.route('/api/stats')
 def get_stats():
     try:
         participants = load_json_data('participants_data.json')
         if not participants:
             return jsonify({"error": "No participant data available"}), 500
+
+        # Get total spaces from network.csv
+        total_spaces = get_total_spaces()
+        if total_spaces is None:
+            return jsonify({"error": "Could not read total spaces from network.csv"}), 500
 
         # Clean and validate participants first
         cleaned_participants = []
@@ -226,7 +254,6 @@ def get_stats():
         total_both = len(both)
         
         # Calculate spaces
-        total_spaces = sum(p['spaces'] for p in cleaned_participants)
         total_host_spaces = sum(p['host_spaces'] for p in cleaned_participants)
         total_speaker_spaces = sum(p['speaker_spaces'] for p in cleaned_participants)
         
