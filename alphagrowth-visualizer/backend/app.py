@@ -17,6 +17,15 @@ def load_json_data(filename):
         data_dir = os.path.join(os.path.dirname(__file__), 'data')
         file_path = os.path.join(data_dir, filename)
         
+        # Debug logging
+        logger.info(f"Current working directory: {os.getcwd()}")
+        logger.info(f"Looking for file: {file_path}")
+        logger.info(f"Directory contents: {os.listdir(data_dir) if os.path.exists(data_dir) else 'Directory not found'}")
+        
+        if os.path.exists(file_path):
+            logger.info(f"File permissions: {oct(os.stat(file_path).st_mode)[-3:]}")
+            logger.info(f"File size: {os.path.getsize(file_path)} bytes")
+        
         if not os.path.exists(file_path):
             logger.error(f"Data file not found: {file_path}")
             return None
