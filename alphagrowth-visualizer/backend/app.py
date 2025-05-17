@@ -203,6 +203,9 @@ def get_stats():
                     cleaned['role'] = 'both' if cleaned['host_spaces'] > 0 and cleaned['speaker_spaces'] > 0 else \
                                     'host' if cleaned['host_spaces'] > 0 else 'speaker'
                 
+                # Log individual participant data for debugging
+                logger.info(f"Participant {cleaned['name']}: spaces={cleaned['spaces']}, speaker_spaces={cleaned['speaker_spaces']}, host_spaces={cleaned['host_spaces']}")
+                
                 cleaned_participants.append(cleaned)
             except (ValueError, TypeError) as e:
                 logger.error(f"Error cleaning participant data: {str(e)}")
@@ -213,9 +216,17 @@ def get_stats():
         total_hosts = sum(1 for p in cleaned_participants if p['role'] in ['host', 'both'])
         total_speakers = sum(1 for p in cleaned_participants if p['role'] in ['speaker', 'both'])
         total_both = sum(1 for p in cleaned_participants if p['role'] == 'both')
-        total_spaces = sum(p['spaces'] for p in cleaned_participants)
-        total_host_spaces = sum(p['host_spaces'] for p in cleaned_participants)
-        total_speaker_spaces = sum(p['speaker_spaces'] for p in cleaned_participants)
+        
+        # Calculate spaces with detailed logging
+        total_spaces = 0
+        total_host_spaces = 0
+        total_speaker_spaces = 0
+        
+        for p in cleaned_participants:
+            total_spaces += p['spaces']
+            total_host_spaces += p['host_spaces']
+            total_speaker_spaces += p['speaker_spaces']
+            logger.info(f"Adding spaces for {p['name']}: total={p['spaces']}, host={p['host_spaces']}, speaker={p['speaker_spaces']}")
         
         # Find most active host and speaker
         hosts = [p for p in cleaned_participants if p['role'] in ['host', 'both']]
@@ -233,6 +244,7 @@ def get_stats():
         logger.info(f"Total spaces: {total_spaces}")
         logger.info(f"Total host spaces: {total_host_spaces}")
         logger.info(f"Total speaker spaces: {total_speaker_spaces}")
+        logger.info(f"Sum of host and speaker spaces: {total_host_spaces + total_speaker_spaces}")
 
         return jsonify({
             'total_participants': total_participants,
