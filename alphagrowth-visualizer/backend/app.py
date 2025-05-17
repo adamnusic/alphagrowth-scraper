@@ -106,6 +106,18 @@ def get_participants():
         participants = load_json_data('participants_data.json')
         if not participants:
             return jsonify({"error": "No participant data available"}), 500
+        
+        # Ensure each participant has all required fields
+        for participant in participants:
+            if 'id' not in participant:
+                participant['id'] = str(participants.index(participant) + 1)
+            if 'host_spaces' not in participant:
+                participant['host_spaces'] = 0
+            if 'speaker_spaces' not in participant:
+                participant['speaker_spaces'] = 0
+            if 'twitter' not in participant:
+                participant['twitter'] = None
+        
         return jsonify(participants)
     except Exception as e:
         logger.error(f"Error in get_participants: {str(e)}")

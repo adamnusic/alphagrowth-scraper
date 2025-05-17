@@ -3,6 +3,7 @@ import axios from 'axios'
 import { apiBaseUrl } from '../config'
 
 interface Participant {
+  id: string
   name: string
   spaces: number
   role: 'host' | 'speaker' | 'both'
@@ -27,13 +28,14 @@ const TopParticipants = () => {
         try {
           console.log('Fetching participants from:', `${apiBaseUrl}/api/participants`)
           const response = await axios.get<Participant[]>(`${apiBaseUrl}/api/participants`, {
-            timeout: 5000, // 5 second timeout
+            timeout: 5000,
             headers: {
               'Accept': 'application/json',
               'Content-Type': 'application/json'
             },
-            withCredentials: false // Don't send credentials
+            withCredentials: false
           })
+          console.log('Fetched participants:', response.data)
           setParticipants(response.data)
           setError(null)
           break
@@ -46,7 +48,7 @@ const TopParticipants = () => {
             if (retries > 1) {
               console.log(`Retrying... ${retries - 1} attempts left`)
               retries--
-              await new Promise(resolve => setTimeout(resolve, 1000)) // Wait 1 second before retry
+              await new Promise(resolve => setTimeout(resolve, 1000))
               continue
             }
             setError(`Failed to load participants: ${error.response?.data?.message || error.message}`)
@@ -65,16 +67,19 @@ const TopParticipants = () => {
 
   // Memoize filtered participants to prevent unnecessary recalculations
   const filteredParticipants = useMemo(() => {
-    if (!participants) return []
+    if (!Array.isArray(participants)) {
+      console.error('Participants is not an array:', participants)
+      return []
+    }
     
     let filtered: Participant[] = []
     
     switch (activeTab) {
       case 'hosts':
-        filtered = participants.filter((p: Participant) => p.role === 'host' || p.role === 'both')
+        filtered = participants.filter(p => p.role === 'host' || p.role === 'both')
         break
       case 'speakers':
-        filtered = participants.filter((p: Participant) => p.role === 'speaker' || p.role === 'both')
+        filtered = participants.filter(p => p.role === 'speaker' || p.role === 'both')
         break
       case 'overall':
         filtered = [...participants]
