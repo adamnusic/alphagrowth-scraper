@@ -15,29 +15,51 @@ CORS(app)  # Enable CORS for all routes
 
 def load_json_data(filename):
     try:
-        data_dir = os.path.join(os.path.dirname(__file__), 'data')
-        file_path = os.path.join(data_dir, filename)
+        # Try multiple possible paths
+        possible_paths = [
+            os.path.join(os.path.dirname(__file__), 'data', filename),  # Local development
+            os.path.join('/opt/render/project/src', 'data', filename),   # Render deployment
+            os.path.join('/opt/render/project/src/alphagrowth-visualizer/backend/data', filename),  # Render backend
+            os.path.join(os.getcwd(), 'data', filename),                 # Current directory
+            os.path.join('/opt/render/project/src/alphagrowth-visualizer/data', filename)  # Render visualizer
+        ]
         
         # Debug logging
         logger.info(f"Current working directory: {os.getcwd()}")
-        logger.info(f"Looking for file: {file_path}")
-        logger.info(f"Directory contents: {os.listdir(data_dir) if os.path.exists(data_dir) else 'Directory not found'}")
+        logger.info(f"Looking for file in possible paths: {possible_paths}")
         
-        if os.path.exists(file_path):
-            logger.info(f"File permissions: {oct(os.stat(file_path).st_mode)[-3:]}")
-            logger.info(f"File size: {os.path.getsize(file_path)} bytes")
-        else:
-            logger.error(f"Data file not found: {file_path}")
-            return None
-            
-        try:
-            with open(file_path, 'r') as f:
-                data = json.load(f)
-                logger.info(f"Successfully loaded {filename} with {len(data) if isinstance(data, list) else 'unknown'} items")
-                return data
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error in {filename}: {str(e)}")
-            return None
+        # List contents of important directories
+        for dir_path in [
+            '/opt/render/project/src',
+            '/opt/render/project/src/alphagrowth-visualizer',
+            '/opt/render/project/src/alphagrowth-visualizer/backend',
+            '/opt/render/project/src/alphagrowth-visualizer/backend/data',
+            os.path.join(os.getcwd(), 'data')
+        ]:
+            if os.path.exists(dir_path):
+                logger.info(f"Contents of {dir_path}: {os.listdir(dir_path)}")
+            else:
+                logger.info(f"Directory not found: {dir_path}")
+        
+        for file_path in possible_paths:
+            if os.path.exists(file_path):
+                logger.info(f"Found file at: {file_path}")
+                logger.info(f"File permissions: {oct(os.stat(file_path).st_mode)[-3:]}")
+                logger.info(f"File size: {os.path.getsize(file_path)} bytes")
+                
+                try:
+                    with open(file_path, 'r') as f:
+                        data = json.load(f)
+                        logger.info(f"Successfully loaded {filename} with {len(data) if isinstance(data, list) else 'unknown'} items")
+                        return data
+                except json.JSONDecodeError as e:
+                    logger.error(f"JSON decode error in {filename}: {str(e)}")
+                    continue
+            else:
+                logger.info(f"File not found at: {file_path}")
+        
+        logger.error(f"Could not find {filename} in any of the possible paths")
+        return None
     except Exception as e:
         logger.error(f"Error loading {filename}: {str(e)}")
         logger.error(traceback.format_exc())
