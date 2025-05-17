@@ -43,4 +43,4 @@ yarn-error.log*
 # Project specific
 alphagrowth-visualizer/backend/data/*.json
 alphagrowth-visualizer/backend/data/*.csv
-!alphagrowth-visualizer/backend/data/.gitkeep 
+!alphagrowth-visualizer/backend/data/.gitkeep alphagrowth-visualizer/backend/data/network_data.json
