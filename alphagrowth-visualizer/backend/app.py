@@ -13,56 +13,39 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
+def get_data_dir():
+    """Get the absolute path to the data directory."""
+    # Get the directory where app.py is located
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(current_dir, 'data')
+    
+    # Log the paths for debugging
+    logger.info(f"Current directory: {current_dir}")
+    logger.info(f"Data directory: {data_dir}")
+    logger.info(f"Data directory exists: {os.path.exists(data_dir)}")
+    if os.path.exists(data_dir):
+        logger.info(f"Contents of data directory: {os.listdir(data_dir)}")
+    
+    return data_dir
+
 def load_json_data(filename):
+    """Load JSON data from the data directory."""
     try:
-        # Get the absolute path of the current file
-        current_file = os.path.abspath(__file__)
-        current_dir = os.path.dirname(current_file)
+        data_dir = get_data_dir()
+        file_path = os.path.join(data_dir, filename)
         
-        # Try multiple possible paths
-        possible_paths = [
-            os.path.join(current_dir, 'data', filename),  # Local development
-            os.path.join('/opt/render/project/src/alphagrowth-visualizer/backend/data', filename),  # Render deployment
-            os.path.join(os.getcwd(), 'data', filename)  # Current directory
-        ]
+        logger.info(f"Attempting to load: {file_path}")
+        logger.info(f"File exists: {os.path.exists(file_path)}")
         
-        # Debug logging
-        logger.info(f"Current file: {current_file}")
-        logger.info(f"Current directory: {current_dir}")
-        logger.info(f"Current working directory: {os.getcwd()}")
-        logger.info(f"Looking for file in possible paths: {possible_paths}")
-        
-        # List contents of important directories
-        for dir_path in [
-            current_dir,
-            os.path.join(current_dir, 'data'),
-            '/opt/render/project/src/alphagrowth-visualizer/backend',
-            '/opt/render/project/src/alphagrowth-visualizer/backend/data'
-        ]:
-            if os.path.exists(dir_path):
-                logger.info(f"Contents of {dir_path}: {os.listdir(dir_path)}")
-            else:
-                logger.info(f"Directory not found: {dir_path}")
-        
-        for file_path in possible_paths:
-            if os.path.exists(file_path):
-                logger.info(f"Found file at: {file_path}")
-                logger.info(f"File permissions: {oct(os.stat(file_path).st_mode)[-3:]}")
-                logger.info(f"File size: {os.path.getsize(file_path)} bytes")
-                
-                try:
-                    with open(file_path, 'r') as f:
-                        data = json.load(f)
-                        logger.info(f"Successfully loaded {filename} with {len(data) if isinstance(data, list) else 'unknown'} items")
-                        return data
-                except json.JSONDecodeError as e:
-                    logger.error(f"JSON decode error in {filename}: {str(e)}")
-                    continue
-            else:
-                logger.info(f"File not found at: {file_path}")
-        
-        logger.error(f"Could not find {filename} in any of the possible paths")
-        return None
+        if not os.path.exists(file_path):
+            logger.error(f"File not found: {file_path}")
+            return None
+            
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+            logger.info(f"Successfully loaded {filename}")
+            return data
+            
     except Exception as e:
         logger.error(f"Error loading {filename}: {str(e)}")
         logger.error(traceback.format_exc())
