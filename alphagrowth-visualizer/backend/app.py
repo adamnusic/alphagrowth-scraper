@@ -17,16 +17,31 @@ def get_data_dir():
     """Get the absolute path to the data directory."""
     # Get the directory where app.py is located
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    data_dir = os.path.join(current_dir, 'data')
     
-    # Log the paths for debugging
-    logger.info(f"Current directory: {current_dir}")
-    logger.info(f"Data directory: {data_dir}")
-    logger.info(f"Data directory exists: {os.path.exists(data_dir)}")
-    if os.path.exists(data_dir):
-        logger.info(f"Contents of data directory: {os.listdir(data_dir)}")
+    # List all possible data directory locations
+    possible_data_dirs = [
+        os.path.join(current_dir, 'data'),  # Local development
+        os.path.join('/opt/render/project/src/alphagrowth-visualizer/backend/data'),  # Render deployment
+        os.path.join('/opt/render/project/src/data'),  # Root data directory
+        os.path.join(current_dir, '..', 'data'),  # Parent directory data
+        os.path.join(os.getcwd(), 'data')  # Current working directory data
+    ]
     
-    return data_dir
+    # Log all possible locations
+    logger.info("Checking possible data directory locations:")
+    for dir_path in possible_data_dirs:
+        logger.info(f"Checking: {dir_path}")
+        if os.path.exists(dir_path):
+            logger.info(f"Found data directory at: {dir_path}")
+            logger.info(f"Contents: {os.listdir(dir_path)}")
+            return dir_path
+        else:
+            logger.info(f"Directory not found: {dir_path}")
+    
+    # If no data directory found, return the default location
+    default_dir = os.path.join(current_dir, 'data')
+    logger.info(f"No data directory found, using default: {default_dir}")
+    return default_dir
 
 def load_json_data(filename):
     """Load JSON data from the data directory."""
@@ -39,7 +54,17 @@ def load_json_data(filename):
         
         if not os.path.exists(file_path):
             logger.error(f"File not found: {file_path}")
-            return None
+            # Try to find the file in the repository
+            repo_root = '/opt/render/project/src'
+            for root, dirs, files in os.walk(repo_root):
+                if filename in files:
+                    found_path = os.path.join(root, filename)
+                    logger.info(f"Found file in repository at: {found_path}")
+                    file_path = found_path
+                    break
+            else:
+                logger.error(f"Could not find {filename} anywhere in the repository")
+                return None
             
         with open(file_path, 'r') as f:
             data = json.load(f)
