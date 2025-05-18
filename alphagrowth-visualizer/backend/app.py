@@ -42,30 +42,55 @@ def get_data_dir():
     # Get the directory where app.py is located
     current_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # List all possible data directory locations
+    # Define all possible data directory locations in order of preference
     possible_data_dirs = [
         os.path.join(current_dir, 'data'),  # Local development
         os.path.join(os.path.dirname(os.path.dirname(current_dir)), 'data'),  # Parent directory data
-        os.path.join('/opt/render/project/src/alphagrowth-visualizer/backend/data'),  # Render deployment
-        os.path.join('/opt/render/project/src/data'),  # Root data directory
+        '/opt/render/project/src/alphagrowth-visualizer/backend/data',  # Render deployment backend data
+        '/opt/render/project/src/alphagrowth-visualizer/data',  # Render deployment root data
+        '/opt/render/project/src/data',  # Root data directory
         os.path.join(os.getcwd(), 'data'),  # Current working directory data
     ]
     
-    # Log all possible locations
+    # Log all possible locations and their contents
     logger.info("Checking possible data directory locations:")
     for dir_path in possible_data_dirs:
         logger.info(f"Checking: {dir_path}")
         if os.path.exists(dir_path):
-            logger.info(f"Found data directory at: {dir_path}")
-            logger.info(f"Contents: {os.listdir(dir_path)}")
-            return dir_path
+            try:
+                contents = os.listdir(dir_path)
+                logger.info(f"Found data directory at: {dir_path}")
+                logger.info(f"Contents: {contents}")
+                
+                # Verify essential files exist
+                required_files = ['participants_data.json', 'network_data.json', 'total_spaces.txt']
+                missing_files = [f for f in required_files if f not in contents]
+                
+                if missing_files:
+                    logger.warning(f"Directory {dir_path} is missing required files: {missing_files}")
+                    continue
+                    
+                return dir_path
+            except Exception as e:
+                logger.error(f"Error checking directory {dir_path}: {str(e)}")
+                continue
         else:
             logger.info(f"Directory not found: {dir_path}")
     
-    # If no data directory found, return the default location
-    default_dir = os.path.join(current_dir, 'data')
-    logger.info(f"No data directory found, using default: {default_dir}")
-    return default_dir
+    # If no valid data directory found, raise an error with clear instructions
+    error_msg = """
+    No valid data directory found! Please ensure one of these directories exists and contains the required files:
+    - /opt/render/project/src/alphagrowth-visualizer/backend/data
+    - /opt/render/project/src/alphagrowth-visualizer/data
+    - /opt/render/project/src/data
+    
+    Required files:
+    - participants_data.json
+    - network_data.json
+    - total_spaces.txt
+    """
+    logger.error(error_msg)
+    raise FileNotFoundError(error_msg)
 
 def load_json_data(filename):
     """Load JSON data from the data directory."""
@@ -74,46 +99,35 @@ def load_json_data(filename):
         file_path = os.path.join(data_dir, filename)
         
         logger.info(f"Attempting to load: {file_path}")
-        logger.info(f"File exists: {os.path.exists(file_path)}")
         
         if not os.path.exists(file_path):
-            logger.error(f"File not found: {file_path}")
-            # Try to find the file in the repository
-            repo_root = '/opt/render/project/src'
-            for root, dirs, files in os.walk(repo_root):
-                if filename in files:
-                    found_path = os.path.join(root, filename)
-                    logger.info(f"Found file in repository at: {found_path}")
-                    file_path = found_path
-                    break
-            else:
-                logger.error(f"Could not find {filename} anywhere in the repository")
-                return None
+            error_msg = f"Required file not found: {filename}"
+            logger.error(error_msg)
+            raise FileNotFoundError(error_msg)
             
         with open(file_path, 'r') as f:
             data = json.load(f)
-            # Log the first few items to verify data structure
-            logger.info(f"First 3 items from {filename}:")
-            for item in data[:3]:
-                logger.info(f"Item: {item}")
             
-            # Ensure we're returning a list
+            # Validate data structure
             if isinstance(data, str):
                 try:
                     data = json.loads(data)
-                except json.JSONDecodeError:
-                    logger.error(f"Failed to parse JSON string from {filename}")
-                    return None
+                except json.JSONDecodeError as e:
+                    logger.error(f"Failed to parse JSON string from {filename}: {str(e)}")
+                    raise
+                    
             if not isinstance(data, list):
-                logger.error(f"Data from {filename} is not a list: {type(data)}")
-                return None
+                error_msg = f"Data from {filename} is not a list: {type(data)}"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+                
             logger.info(f"Successfully loaded {filename} with {len(data)} items")
             return data
             
     except Exception as e:
         logger.error(f"Error loading {filename}: {str(e)}")
         logger.error(traceback.format_exc())
-        return None
+        raise
 
 @app.route('/api/network')
 def get_network():
