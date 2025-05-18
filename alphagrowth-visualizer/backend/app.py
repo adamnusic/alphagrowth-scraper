@@ -332,24 +332,31 @@ def get_stats():
                     file_path = os.path.join(data_dir, participants_file)
                     logger.info(f"Reading file: {file_path}")
                     
-                    participants_df = pd.read_csv(file_path)
-                    logger.info(f"File {participants_file} contains {len(participants_df)} rows")
+                    # Read CSV in chunks to handle large files
+                    chunk_size = 10000
+                    total_rows = 0
                     
-                    # Log the first few rows to verify data structure
-                    logger.info(f"First few rows of {participants_file}:")
-                    logger.info(participants_df.head().to_string())
+                    for chunk in pd.read_csv(file_path, chunksize=chunk_size):
+                        total_rows += len(chunk)
+                        logger.info(f"Processing chunk of {len(chunk)} rows...")
+                        
+                        # Process each row in the chunk
+                        for _, row in chunk.iterrows():
+                            space_url = row['space_url']
+                            name = row['name']
+                            space_participants[space_url].add(name)
+                        
+                        # Log progress
+                        if total_rows % 50000 == 0:
+                            logger.info(f"Processed {total_rows} rows so far...")
                     
-                    # Process each row
-                    for _, row in participants_df.iterrows():
-                        space_url = row['space_url']
-                        name = row['name']
-                        space_participants[space_url].add(name)
+                    logger.info(f"Finished processing {participants_file} - total rows: {total_rows}")
                     
-                    # Update total participants count
+                    # Calculate current totals
                     total_participants_in_spaces = sum(len(participants) for participants in space_participants.values())
                     spaces_with_participants = len(space_participants)
                     
-                    logger.info(f"After processing {participants_file}:")
+                    logger.info(f"Current totals after processing {participants_file}:")
                     logger.info(f"- Total participants in spaces: {total_participants_in_spaces}")
                     logger.info(f"- Spaces with participants: {spaces_with_participants}")
                     logger.info(f"- Average participants per space: {total_participants_in_spaces / spaces_with_participants if spaces_with_participants > 0 else 0:.2f}")
