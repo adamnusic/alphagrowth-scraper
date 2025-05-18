@@ -306,22 +306,32 @@ def get_stats():
         most_active_speaker = max(speakers, key=lambda x: x['speaker_spaces']) if speakers else {'name': 'N/A', 'speaker_spaces': 0}
 
         # Calculate average participants per space
-        data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+        data_dir = get_data_dir()  # Use get_data_dir() to find the correct data directory
         participants_files = [f for f in os.listdir(data_dir) if f.startswith('participants_') and f.endswith('.csv')]
         participants_files.sort()  # Sort to process oldest first
         
         # Count participants per space
         space_participants = defaultdict(set)
         for participants_file in participants_files:
-            participants_df = pd.read_csv(os.path.join(data_dir, participants_file))
-            for _, row in participants_df.iterrows():
-                space_participants[row['space_url']].add(row['name'])
+            try:
+                participants_df = pd.read_csv(os.path.join(data_dir, participants_file))
+                for _, row in participants_df.iterrows():
+                    space_participants[row['space_url']].add(row['name'])
+                logger.info(f"Processed {participants_file} - found {len(participants_df)} participants")
+            except Exception as e:
+                logger.error(f"Error processing {participants_file}: {str(e)}")
+                continue
         
         # Calculate average
         total_participants_in_spaces = sum(len(participants) for participants in space_participants.values())
-        average_participants_per_space = total_participants_in_spaces / len(space_participants) if space_participants else 0
+        spaces_with_participants = len(space_participants)
+        
+        logger.info(f"Total participants in spaces: {total_participants_in_spaces}")
+        logger.info(f"Spaces with participants: {spaces_with_participants}")
+        
+        average_participants_per_space = total_participants_in_spaces / spaces_with_participants if spaces_with_participants > 0 else 0
 
-        # Log final stats only
+        # Log final stats
         logger.info(f"Final stats: participants={total_participants}, hosts={total_hosts}, speakers={total_speakers}, spaces={total_spaces}")
         logger.info(f"Average participants per space: {average_participants_per_space:.2f}")
 
