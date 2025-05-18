@@ -6,6 +6,7 @@ import logging
 import traceback
 from collections import defaultdict
 from datetime import datetime
+import pandas as pd
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -44,9 +45,9 @@ def get_data_dir():
     # List all possible data directory locations
     possible_data_dirs = [
         os.path.join(current_dir, 'data'),  # Local development
+        os.path.join(os.path.dirname(os.path.dirname(current_dir)), 'data'),  # Parent directory data
         os.path.join('/opt/render/project/src/alphagrowth-visualizer/backend/data'),  # Render deployment
         os.path.join('/opt/render/project/src/data'),  # Root data directory
-        os.path.join(current_dir, '..', 'data'),  # Parent directory data
         os.path.join(os.getcwd(), 'data'),  # Current working directory data
     ]
     
@@ -290,8 +291,25 @@ def get_stats():
         most_active_host = max(hosts, key=lambda x: x['host_spaces']) if hosts else {'name': 'N/A', 'host_spaces': 0}
         most_active_speaker = max(speakers, key=lambda x: x['speaker_spaces']) if speakers else {'name': 'N/A', 'speaker_spaces': 0}
 
+        # Calculate average participants per space
+        data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+        participants_files = [f for f in os.listdir(data_dir) if f.startswith('participants_') and f.endswith('.csv')]
+        participants_files.sort()  # Sort to process oldest first
+        
+        # Count participants per space
+        space_participants = defaultdict(set)
+        for participants_file in participants_files:
+            participants_df = pd.read_csv(os.path.join(data_dir, participants_file))
+            for _, row in participants_df.iterrows():
+                space_participants[row['space_url']].add(row['name'])
+        
+        # Calculate average
+        total_participants_in_spaces = sum(len(participants) for participants in space_participants.values())
+        average_participants_per_space = total_participants_in_spaces / len(space_participants) if space_participants else 0
+
         # Log final stats only
         logger.info(f"Final stats: participants={total_participants}, hosts={total_hosts}, speakers={total_speakers}, spaces={total_spaces}")
+        logger.info(f"Average participants per space: {average_participants_per_space:.2f}")
 
         return jsonify({
             'total_participants': total_participants,
@@ -301,7 +319,7 @@ def get_stats():
             'total_spaces': total_spaces,
             'total_host_spaces': total_host_spaces,
             'total_speaker_spaces': total_speaker_spaces,
-            'average_participants_per_space': total_participants / total_spaces if total_spaces > 0 else 0,
+            'average_participants_per_space': round(average_participants_per_space, 2),
             'most_active_host': {
                 'name': most_active_host['name'],
                 'spaces': most_active_host['host_spaces']
