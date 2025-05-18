@@ -1,8 +1,26 @@
 import ErrorBoundary from './components/ErrorBoundary'
 import ParticipationStats from './components/ParticipationStats'
 import TopParticipants from './components/TopParticipants'
+import { useEffect, useState } from 'react'
+import axios from 'axios'
+import { apiBaseUrl } from './config'
 
 function App() {
+  const [lastRunDate, setLastRunDate] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchLastRunDate = async () => {
+      try {
+        const response = await axios.get(`${apiBaseUrl}/api/last-run`)
+        setLastRunDate(response.data.last_run_date)
+      } catch (error) {
+        console.error('Error fetching last run date:', error)
+      }
+    }
+
+    fetchLastRunDate()
+  }, [])
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-100">
@@ -21,6 +39,11 @@ function App() {
               >
                 AlphaGrowth Twitter Spaces
               </a>
+              {lastRunDate && (
+                <span className="ml-2 text-gray-500">
+                  (Last updated: {lastRunDate})
+                </span>
+              )}
             </p>
           </div>
         </header>
