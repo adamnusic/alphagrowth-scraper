@@ -39,6 +39,11 @@ function App() {
             </div>
           </div>
         </main>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center text-sm text-gray-500 mb-4">
+            API spins down with inactivity, which can delay requests by 50 seconds or more.
+          </div>
+        </div>
         <footer className="bg-white border-t border-gray-200 mt-8">
           <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
             <div className="flex justify-center items-center space-x-2 text-sm text-gray-500">
