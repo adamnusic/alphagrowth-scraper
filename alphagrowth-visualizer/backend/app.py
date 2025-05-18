@@ -325,6 +325,8 @@ def get_stats():
             
             # Count participants per space
             space_participants = defaultdict(set)
+            total_participants_in_spaces = 0
+            
             for participants_file in participants_files:
                 try:
                     file_path = os.path.join(data_dir, participants_file)
@@ -337,28 +339,37 @@ def get_stats():
                     logger.info(f"First few rows of {participants_file}:")
                     logger.info(participants_df.head().to_string())
                     
+                    # Process each row
                     for _, row in participants_df.iterrows():
-                        space_participants[row['space_url']].add(row['name'])
+                        space_url = row['space_url']
+                        name = row['name']
+                        space_participants[space_url].add(name)
                     
-                    logger.info(f"After processing {participants_file}, found {len(space_participants)} spaces with participants")
+                    # Update total participants count
+                    total_participants_in_spaces = sum(len(participants) for participants in space_participants.values())
+                    spaces_with_participants = len(space_participants)
+                    
+                    logger.info(f"After processing {participants_file}:")
+                    logger.info(f"- Total participants in spaces: {total_participants_in_spaces}")
+                    logger.info(f"- Spaces with participants: {spaces_with_participants}")
+                    logger.info(f"- Average participants per space: {total_participants_in_spaces / spaces_with_participants if spaces_with_participants > 0 else 0:.2f}")
+                    
                 except Exception as e:
                     logger.error(f"Error processing {participants_file}: {str(e)}")
                     logger.error(traceback.format_exc())
                     continue
             
-            # Calculate average
-            total_participants_in_spaces = sum(len(participants) for participants in space_participants.values())
+            # Calculate final average
             spaces_with_participants = len(space_participants)
-            
-            logger.info(f"Total participants in spaces: {total_participants_in_spaces}")
-            logger.info(f"Spaces with participants: {spaces_with_participants}")
-            
-            # Log some example spaces and their participant counts
-            logger.info("Example spaces and their participant counts:")
-            for space_url, participants in list(space_participants.items())[:5]:
-                logger.info(f"Space: {space_url} - Participants: {len(participants)}")
-            
-            average_participants_per_space = total_participants_in_spaces / spaces_with_participants if spaces_with_participants > 0 else 0
+            if spaces_with_participants > 0:
+                average_participants_per_space = total_participants_in_spaces / spaces_with_participants
+                logger.info(f"Final calculation:")
+                logger.info(f"- Total participants in spaces: {total_participants_in_spaces}")
+                logger.info(f"- Spaces with participants: {spaces_with_participants}")
+                logger.info(f"- Average participants per space: {average_participants_per_space:.2f}")
+            else:
+                average_participants_per_space = 0
+                logger.warning("No spaces with participants found!")
 
         # Log final stats
         logger.info(f"Final stats: participants={total_participants}, hosts={total_hosts}, speakers={total_speakers}, spaces={total_spaces}")
