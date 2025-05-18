@@ -247,6 +247,21 @@ def get_last_run_date():
 @app.route('/api/stats')
 def get_stats():
     try:
+        data_dir = get_data_dir()
+        stats_file = os.path.join(data_dir, 'stats.json')
+        
+        # Try to load pre-calculated stats
+        if os.path.exists(stats_file):
+            try:
+                with open(stats_file, 'r') as f:
+                    stats = json.load(f)
+                    logger.info(f"Loaded pre-calculated stats from {stats_file}")
+                    return jsonify(stats)
+            except Exception as e:
+                logger.error(f"Error loading stats.json: {str(e)}")
+                # Continue with calculation if file is corrupted
+        
+        # If stats.json doesn't exist or is corrupted, calculate stats
         participants = load_json_data('participants_data.json')
         if not participants:
             return jsonify({"error": "No participant data available"}), 500
@@ -305,93 +320,26 @@ def get_stats():
         most_active_host = max(hosts, key=lambda x: x['host_spaces']) if hosts else {'name': 'N/A', 'host_spaces': 0}
         most_active_speaker = max(speakers, key=lambda x: x['speaker_spaces']) if speakers else {'name': 'N/A', 'speaker_spaces': 0}
 
-        # Calculate average participants per space
-        data_dir = get_data_dir()  # Use get_data_dir() to find the correct data directory
-        logger.info(f"Looking for participants CSV files in: {data_dir}")
-        
-        # List all files in the data directory
-        all_files = os.listdir(data_dir)
-        logger.info(f"All files in data directory: {all_files}")
-        
-        # Look for both participants_*.csv and participants.csv
-        participants_files = [f for f in all_files if (f.startswith('participants_') and f.endswith('.csv')) or f == 'participants.csv']
-        logger.info(f"Found participants CSV files: {participants_files}")
-        
-        if not participants_files:
-            logger.error("No participants CSV files found!")
-            average_participants_per_space = 0
-        else:
-            participants_files.sort()  # Sort to process oldest first
-            
-            # Count participants per space
-            space_participants = defaultdict(set)
-            total_participants_in_spaces = 0
-            total_rows_processed = 0
-            
-            for participants_file in participants_files:
-                try:
-                    file_path = os.path.join(data_dir, participants_file)
-                    logger.info(f"Reading file: {file_path}")
-                    
-                    # Read CSV in chunks to handle large files
-                    chunk_size = 10000
-                    
-                    for chunk in pd.read_csv(file_path, chunksize=chunk_size):
-                        total_rows_processed += len(chunk)
-                        logger.info(f"Processing chunk of {len(chunk)} rows...")
-                        
-                        # Process each row in the chunk
-                        for _, row in chunk.iterrows():
-                            space_url = row['space_url']
-                            name = row['name']
-                            space_participants[space_url].add(name)
-                        
-                        # Log progress
-                        if total_rows_processed % 50000 == 0:
-                            logger.info(f"Processed {total_rows_processed} rows so far...")
-                            # Log intermediate calculations
-                            current_total = sum(len(participants) for participants in space_participants.values())
-                            current_spaces = len(space_participants)
-                            logger.info(f"Current intermediate stats:")
-                            logger.info(f"- Total participants in spaces: {current_total}")
-                            logger.info(f"- Spaces with participants: {current_spaces}")
-                            if current_spaces > 0:
-                                logger.info(f"- Current average: {current_total / current_spaces:.2f}")
-                    
-                    logger.info(f"Finished processing {participants_file} - total rows: {total_rows_processed}")
-                    
-                    # Calculate current totals
-                    total_participants_in_spaces = sum(len(participants) for participants in space_participants.values())
-                    spaces_with_participants = len(space_participants)
-                    
-                    logger.info(f"Current totals after processing {participants_file}:")
-                    logger.info(f"- Total participants in spaces: {total_participants_in_spaces}")
-                    logger.info(f"- Spaces with participants: {spaces_with_participants}")
-                    logger.info(f"- Average participants per space: {total_participants_in_spaces / spaces_with_participants if spaces_with_participants > 0 else 0:.2f}")
-                    
-                except Exception as e:
-                    logger.error(f"Error processing {participants_file}: {str(e)}")
-                    logger.error(traceback.format_exc())
-                    continue
-            
-            # Calculate final average
-            spaces_with_participants = len(space_participants)
-            if spaces_with_participants > 0:
-                average_participants_per_space = total_participants_in_spaces / spaces_with_participants
-                logger.info(f"Final calculation:")
-                logger.info(f"- Total participants in spaces: {total_participants_in_spaces}")
-                logger.info(f"- Spaces with participants: {spaces_with_participants}")
-                logger.info(f"- Average participants per space: {average_participants_per_space:.2f}")
-                logger.info(f"- Total rows processed: {total_rows_processed}")
-            else:
+        # Calculate average participants per space from participants.csv
+        participants_file = os.path.join(data_dir, 'participants.csv')
+        if os.path.exists(participants_file):
+            try:
+                # Read the first line to get total rows
+                with open(participants_file, 'r') as f:
+                    total_rows = sum(1 for _ in f) - 1  # Subtract header row
+                
+                # Calculate average
+                average_participants_per_space = total_rows / total_spaces if total_spaces > 0 else 0
+                logger.info(f"Calculated average participants per space: {average_participants_per_space:.2f}")
+            except Exception as e:
+                logger.error(f"Error calculating average participants per space: {str(e)}")
                 average_participants_per_space = 0
-                logger.warning("No spaces with participants found!")
+        else:
+            average_participants_per_space = 0
+            logger.warning("participants.csv not found, using default average of 0")
 
-        # Log final stats
-        logger.info(f"Final stats: participants={total_participants}, hosts={total_hosts}, speakers={total_speakers}, spaces={total_spaces}")
-        logger.info(f"Average participants per space: {average_participants_per_space:.2f}")
-
-        return jsonify({
+        # Prepare stats
+        stats = {
             'total_participants': total_participants,
             'total_hosts': total_hosts,
             'total_speakers': total_speakers,
@@ -409,7 +357,17 @@ def get_stats():
                 'spaces': most_active_speaker['speaker_spaces']
             },
             'last_run_date': last_run_date
-        })
+        }
+
+        # Save stats to file for future use
+        try:
+            with open(stats_file, 'w') as f:
+                json.dump(stats, f)
+            logger.info(f"Saved stats to {stats_file}")
+        except Exception as e:
+            logger.error(f"Error saving stats to file: {str(e)}")
+
+        return jsonify(stats)
     except Exception as e:
         logger.error(f"Error in get_stats: {str(e)}")
         logger.error(traceback.format_exc())
