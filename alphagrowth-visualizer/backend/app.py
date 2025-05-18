@@ -307,29 +307,57 @@ def get_stats():
 
         # Calculate average participants per space
         data_dir = get_data_dir()  # Use get_data_dir() to find the correct data directory
-        participants_files = [f for f in os.listdir(data_dir) if f.startswith('participants_') and f.endswith('.csv')]
-        participants_files.sort()  # Sort to process oldest first
+        logger.info(f"Looking for participants CSV files in: {data_dir}")
         
-        # Count participants per space
-        space_participants = defaultdict(set)
-        for participants_file in participants_files:
-            try:
-                participants_df = pd.read_csv(os.path.join(data_dir, participants_file))
-                for _, row in participants_df.iterrows():
-                    space_participants[row['space_url']].add(row['name'])
-                logger.info(f"Processed {participants_file} - found {len(participants_df)} participants")
-            except Exception as e:
-                logger.error(f"Error processing {participants_file}: {str(e)}")
-                continue
+        # List all files in the data directory
+        all_files = os.listdir(data_dir)
+        logger.info(f"All files in data directory: {all_files}")
         
-        # Calculate average
-        total_participants_in_spaces = sum(len(participants) for participants in space_participants.values())
-        spaces_with_participants = len(space_participants)
+        participants_files = [f for f in all_files if f.startswith('participants_') and f.endswith('.csv')]
+        logger.info(f"Found participants CSV files: {participants_files}")
         
-        logger.info(f"Total participants in spaces: {total_participants_in_spaces}")
-        logger.info(f"Spaces with participants: {spaces_with_participants}")
-        
-        average_participants_per_space = total_participants_in_spaces / spaces_with_participants if spaces_with_participants > 0 else 0
+        if not participants_files:
+            logger.error("No participants CSV files found!")
+            average_participants_per_space = 0
+        else:
+            participants_files.sort()  # Sort to process oldest first
+            
+            # Count participants per space
+            space_participants = defaultdict(set)
+            for participants_file in participants_files:
+                try:
+                    file_path = os.path.join(data_dir, participants_file)
+                    logger.info(f"Reading file: {file_path}")
+                    
+                    participants_df = pd.read_csv(file_path)
+                    logger.info(f"File {participants_file} contains {len(participants_df)} rows")
+                    
+                    # Log the first few rows to verify data structure
+                    logger.info(f"First few rows of {participants_file}:")
+                    logger.info(participants_df.head().to_string())
+                    
+                    for _, row in participants_df.iterrows():
+                        space_participants[row['space_url']].add(row['name'])
+                    
+                    logger.info(f"After processing {participants_file}, found {len(space_participants)} spaces with participants")
+                except Exception as e:
+                    logger.error(f"Error processing {participants_file}: {str(e)}")
+                    logger.error(traceback.format_exc())
+                    continue
+            
+            # Calculate average
+            total_participants_in_spaces = sum(len(participants) for participants in space_participants.values())
+            spaces_with_participants = len(space_participants)
+            
+            logger.info(f"Total participants in spaces: {total_participants_in_spaces}")
+            logger.info(f"Spaces with participants: {spaces_with_participants}")
+            
+            # Log some example spaces and their participant counts
+            logger.info("Example spaces and their participant counts:")
+            for space_url, participants in list(space_participants.items())[:5]:
+                logger.info(f"Space: {space_url} - Participants: {len(participants)}")
+            
+            average_participants_per_space = total_participants_in_spaces / spaces_with_participants if spaces_with_participants > 0 else 0
 
         # Log final stats
         logger.info(f"Final stats: participants={total_participants}, hosts={total_hosts}, speakers={total_speakers}, spaces={total_spaces}")
