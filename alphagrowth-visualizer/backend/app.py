@@ -313,7 +313,8 @@ def get_stats():
         all_files = os.listdir(data_dir)
         logger.info(f"All files in data directory: {all_files}")
         
-        participants_files = [f for f in all_files if f.startswith('participants_') and f.endswith('.csv')]
+        # Look for both participants_*.csv and participants.csv
+        participants_files = [f for f in all_files if (f.startswith('participants_') and f.endswith('.csv')) or f == 'participants.csv']
         logger.info(f"Found participants CSV files: {participants_files}")
         
         if not participants_files:
