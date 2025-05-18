@@ -23,9 +23,11 @@ def convert_csv_to_json():
         logger.info(f"Destination data directory: {dest_data_dir}")
         logger.info(f"Source directory contents: {os.listdir(source_data_dir)}")
 
-        # Convert participants data
-        logger.info("Reading participants CSV...")
-        participants_df = pd.read_csv(os.path.join(source_data_dir, 'participants_20250518.csv'))
+        # Find all participants CSV files
+        participants_files = [f for f in os.listdir(source_data_dir) if f.startswith('participants_') and f.endswith('.csv')]
+        participants_files.sort()  # Sort to process oldest first
+        
+        logger.info(f"Found participants files: {participants_files}")
         
         # Group by name to count spaces and determine roles
         participant_stats = defaultdict(lambda: {
@@ -33,26 +35,36 @@ def convert_csv_to_json():
             'roles': set(),
             'twitter': '',
             'host_spaces': 0,
-            'speaker_spaces': 0
+            'speaker_spaces': 0,
+            'space_urls': set()  # Track unique spaces
         })
         
-        for _, row in participants_df.iterrows():
-            name = row['name']
-            role = row['role'].lower()  # Convert to lowercase
-            if role == 'speakers':  # Fix plural form
-                role = 'speaker'
+        # Process each participants file
+        for participants_file in participants_files:
+            logger.info(f"Processing {participants_file}...")
+            participants_df = pd.read_csv(os.path.join(source_data_dir, participants_file))
             
-            participant_stats[name]['spaces'] += 1
-            participant_stats[name]['roles'].add(role)
-            
-            # Count spaces by role
-            if role == 'host':
-                participant_stats[name]['host_spaces'] += 1
-            elif role == 'speaker':
-                participant_stats[name]['speaker_spaces'] += 1
-            
-            if pd.notna(row['twitter_link']):
-                participant_stats[name]['twitter'] = row['twitter_link']
+            for _, row in participants_df.iterrows():
+                name = row['name']
+                role = row['role'].lower()  # Convert to lowercase
+                if role == 'speakers':  # Fix plural form
+                    role = 'speaker'
+                
+                # Only count unique spaces
+                if row['space_url'] not in participant_stats[name]['space_urls']:
+                    participant_stats[name]['spaces'] += 1
+                    participant_stats[name]['space_urls'].add(row['space_url'])
+                
+                participant_stats[name]['roles'].add(role)
+                
+                # Count spaces by role
+                if role == 'host':
+                    participant_stats[name]['host_spaces'] += 1
+                elif role == 'speaker':
+                    participant_stats[name]['speaker_spaces'] += 1
+                
+                if pd.notna(row['twitter_link']):
+                    participant_stats[name]['twitter'] = row['twitter_link']
         
         # Transform to final format
         participants_data = []
@@ -77,15 +89,15 @@ def convert_csv_to_json():
             participants_data.append(participant)
             name_to_id[name] = str(idx)
         
-        logger.info(f"Processed {len(participants_data)} participants")
+        logger.info(f"Processed {len(participants_data)} unique participants")
         
         # Save participants data
         with open(os.path.join(dest_data_dir, 'participants_data.json'), 'w') as f:
             json.dump(participants_data, f, indent=2)
         logger.info("Saved participants data to JSON")
 
-        # Build network data from participants.csv only
-        logger.info("Building network data from participants.csv...")
+        # Build network data from all participants
+        logger.info("Building network data...")
         network_data = {
             'nodes': participants_data,
             'links': []
@@ -93,8 +105,10 @@ def convert_csv_to_json():
         
         # Create links between participants in the same space
         space_participants = defaultdict(set)
-        for _, row in participants_df.iterrows():
-            space_participants[row['space_url']].add(row['name'])
+        for participants_file in participants_files:
+            participants_df = pd.read_csv(os.path.join(source_data_dir, participants_file))
+            for _, row in participants_df.iterrows():
+                space_participants[row['space_url']].add(row['name'])
         
         for space, participants in space_participants.items():
             participants = list(participants)
