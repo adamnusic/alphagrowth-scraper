@@ -13,7 +13,7 @@ def convert_csv_to_json():
         # Get the source and destination directories
         script_dir = os.path.dirname(os.path.abspath(__file__))
         backend_dir = os.path.dirname(script_dir)
-        source_data_dir = '/opt/render/project/src/data'  # Where the CSV files are
+        source_data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(script_dir))), 'data')  # Where the CSV files are
         dest_data_dir = os.path.join(backend_dir, 'data')  # Where to save JSON files
         
         # Create destination directory if it doesn't exist
@@ -25,7 +25,7 @@ def convert_csv_to_json():
 
         # Convert participants data
         logger.info("Reading participants CSV...")
-        participants_df = pd.read_csv(os.path.join(source_data_dir, 'participants_20250516.csv'))
+        participants_df = pd.read_csv(os.path.join(source_data_dir, 'participants_20250518.csv'))
         
         # Group by name to count spaces and determine roles
         participant_stats = defaultdict(lambda: {

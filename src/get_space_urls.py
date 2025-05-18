@@ -4,34 +4,90 @@ import time
 import csv
 import os
 from datetime import datetime
+import json
 
 BASE_URL = "https://alphagrowth.io/spaces/?page="
 
+def load_existing_spaces():
+    """Load existing spaces from the CSV file."""
+    try:
+        # Look for the most recent space_urls CSV file
+        data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'data')
+        space_urls_files = [f for f in os.listdir(data_dir) if f.startswith('space_urls_') and f.endswith('.csv')]
+        
+        if not space_urls_files:
+            print("No space_urls CSV file found!")
+            return set()
+            
+        latest_file = sorted(space_urls_files)[-1]
+        csv_path = os.path.join(data_dir, latest_file)
+        
+        existing_spaces = set()
+        with open(csv_path, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                existing_spaces.add(row['url'])
+                
+        print(f"Loaded existing spaces from {latest_file}: {sorted(list(existing_spaces))[:5]}...")  # Print first 5 for debugging
+        return existing_spaces
+    except Exception as e:
+        print(f"Error loading existing spaces: {str(e)}")
+        return set()
+
 def get_space_links():
     space_urls = []
-    for page in range(1, 325):
-        print(f"Fetching page {page}...")
-        response = requests.get(f"{BASE_URL}{page}")
-        if response.status_code != 200:
-            print(f"Failed to fetch page {page}")
-            continue
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        # Select all <li> elements with 'onclick' attribute containing /spaces/
-        elements = soup.select('li[onclick*="/spaces/"]')
-
-        for elem in elements:
-            onclick_value = elem.get('onclick', '')
-            # Extract the URL path inside the onclick string
-            # Example onclick: window.location='/spaces/web3-and-chill-ccd';
-            if "window.location=" in onclick_value:
-                start = onclick_value.find("'") + 1
-                end = onclick_value.rfind("'")
-                path = onclick_value[start:end]
-                full_url = "https://alphagrowth.io" + path
-                space_urls.append(full_url)
-
-        time.sleep(1)  # polite delay between requests
+    existing_spaces = load_existing_spaces()
+    print(f"Found {len(existing_spaces)} existing spaces")
+    
+    page = 1
+    while True:
+        print(f"\nFetching page {page}...")
+        try:
+            response = requests.get(f"{BASE_URL}{page}")
+            print(f"Response status code: {response.status_code}")
+            
+            if response.status_code != 200:
+                print(f"Failed to fetch page {page}")
+                break
+                
+            soup = BeautifulSoup(response.text, 'html.parser')
+            elements = soup.select('li[onclick*="/spaces/"]')
+            print(f"Found {len(elements)} space elements on page {page}")
+            
+            if not elements:
+                print("No more spaces found")
+                break
+                
+            found_existing = False
+            for elem in elements:
+                onclick_value = elem.get('onclick', '')
+                if "window.location=" in onclick_value:
+                    start = onclick_value.find("'") + 1
+                    end = onclick_value.rfind("'")
+                    path = onclick_value[start:end]
+                    full_url = "https://alphagrowth.io" + path
+                    
+                    # If we find an existing space, we can stop
+                    if full_url in existing_spaces:
+                        print(f"Found existing space: {full_url}")
+                        found_existing = True
+                        break
+                        
+                    space_urls.append(full_url)
+                    print(f"Added new space: {full_url}")
+            
+            if found_existing:
+                print("Found existing space, stopping")
+                break
+                
+            page += 1
+            time.sleep(1)  # polite delay between requests
+            
+        except Exception as e:
+            print(f"Error processing page {page}: {str(e)}")
+            break
+    
+    print(f"\nFound {len(space_urls)} new spaces")
     return space_urls
 
 def get_space_links_and_save_csv(output_path):

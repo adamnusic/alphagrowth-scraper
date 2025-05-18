@@ -3,6 +3,8 @@ import sys
 import os
 from get_space_urls import get_space_links_and_save_csv
 from get_participants import get_participants_from_csv
+import csv
+from datetime import datetime
 
 # Define constants for file paths
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -32,6 +34,32 @@ def main():
             total_speakers = sum(len(p['speakers']) for p in participants.values())
             print(f'Total hosts found: {total_hosts}')
             print(f'Total speakers found: {total_speakers}')
+            
+            # Save participants to CSV
+            output_filename = f'participants_{datetime.now().strftime("%Y%m%d")}.csv'
+            output_path = os.path.join(os.path.dirname(args.urls_csv), output_filename)
+            
+            # Create the data directory if it doesn't exist
+            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            
+            with open(output_path, 'w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                # Write header
+                writer.writerow(['space_url', 'role', 'name', 'alphagrowth_link', 'twitter_link'])
+                
+                # Write data
+                for space_url, data in participants.items():
+                    for role in ['hosts', 'speakers']:
+                        for participant in data[role]:
+                            writer.writerow([
+                                space_url,
+                                role,
+                                participant['name'],
+                                participant['alphagrowth_link'],
+                                participant['twitter_link']
+                            ])
+            
+            print(f'Results saved to: {output_path}')
         except Exception as e:
             print(f"Error during participant retrieval: {e}")
             sys.exit(1)

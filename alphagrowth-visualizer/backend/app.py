@@ -5,6 +5,7 @@ import os
 import logging
 import traceback
 from collections import defaultdict
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -211,6 +212,23 @@ def get_total_spaces():
         logger.error(traceback.format_exc())
         return None
 
+def get_last_run_date():
+    """Get the date of the most recent data collection."""
+    try:
+        data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
+        participants_files = [f for f in os.listdir(data_dir) if f.startswith('participants_') and f.endswith('.csv')]
+        if not participants_files:
+            return None
+        latest_file = sorted(participants_files)[-1]
+        # Extract date from filename (participants_YYYYMMDD.csv)
+        date_str = latest_file.split('_')[1].split('.')[0]
+        # Convert to readable format
+        date = datetime.strptime(date_str, '%Y%m%d')
+        return date.strftime('%B %d, %Y')
+    except Exception as e:
+        logger.error(f"Error getting last run date: {str(e)}")
+        return None
+
 @app.route('/api/stats')
 def get_stats():
     try:
@@ -222,6 +240,9 @@ def get_stats():
         total_spaces = get_total_spaces()
         if total_spaces is None:
             return jsonify({"error": "Could not read total spaces from total_spaces.txt"}), 500
+
+        # Get last run date
+        last_run_date = get_last_run_date()
 
         # Clean and validate participants first
         cleaned_participants = []
@@ -288,10 +309,24 @@ def get_stats():
             'most_active_speaker': {
                 'name': most_active_speaker['name'],
                 'spaces': most_active_speaker['speaker_spaces']
-            }
+            },
+            'last_run_date': last_run_date
         })
     except Exception as e:
         logger.error(f"Error in get_stats: {str(e)}")
+        logger.error(traceback.format_exc())
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route('/api/last-run')
+def get_last_run():
+    """Get the date of the most recent data collection."""
+    try:
+        last_run_date = get_last_run_date()
+        if last_run_date is None:
+            return jsonify({"error": "Could not determine last run date"}), 500
+        return jsonify({"last_run_date": last_run_date})
+    except Exception as e:
+        logger.error(f"Error in get_last_run: {str(e)}")
         logger.error(traceback.format_exc())
         return jsonify({"error": "Internal server error"}), 500
 
