@@ -326,6 +326,7 @@ def get_stats():
             # Count participants per space
             space_participants = defaultdict(set)
             total_participants_in_spaces = 0
+            total_rows_processed = 0
             
             for participants_file in participants_files:
                 try:
@@ -334,10 +335,9 @@ def get_stats():
                     
                     # Read CSV in chunks to handle large files
                     chunk_size = 10000
-                    total_rows = 0
                     
                     for chunk in pd.read_csv(file_path, chunksize=chunk_size):
-                        total_rows += len(chunk)
+                        total_rows_processed += len(chunk)
                         logger.info(f"Processing chunk of {len(chunk)} rows...")
                         
                         # Process each row in the chunk
@@ -347,10 +347,18 @@ def get_stats():
                             space_participants[space_url].add(name)
                         
                         # Log progress
-                        if total_rows % 50000 == 0:
-                            logger.info(f"Processed {total_rows} rows so far...")
+                        if total_rows_processed % 50000 == 0:
+                            logger.info(f"Processed {total_rows_processed} rows so far...")
+                            # Log intermediate calculations
+                            current_total = sum(len(participants) for participants in space_participants.values())
+                            current_spaces = len(space_participants)
+                            logger.info(f"Current intermediate stats:")
+                            logger.info(f"- Total participants in spaces: {current_total}")
+                            logger.info(f"- Spaces with participants: {current_spaces}")
+                            if current_spaces > 0:
+                                logger.info(f"- Current average: {current_total / current_spaces:.2f}")
                     
-                    logger.info(f"Finished processing {participants_file} - total rows: {total_rows}")
+                    logger.info(f"Finished processing {participants_file} - total rows: {total_rows_processed}")
                     
                     # Calculate current totals
                     total_participants_in_spaces = sum(len(participants) for participants in space_participants.values())
@@ -374,6 +382,7 @@ def get_stats():
                 logger.info(f"- Total participants in spaces: {total_participants_in_spaces}")
                 logger.info(f"- Spaces with participants: {spaces_with_participants}")
                 logger.info(f"- Average participants per space: {average_participants_per_space:.2f}")
+                logger.info(f"- Total rows processed: {total_rows_processed}")
             else:
                 average_participants_per_space = 0
                 logger.warning("No spaces with participants found!")
