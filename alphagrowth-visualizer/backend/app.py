@@ -231,18 +231,41 @@ def get_total_spaces():
 def get_last_run_date():
     """Get the date of the most recent data collection."""
     try:
-        data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data')
-        participants_files = [f for f in os.listdir(data_dir) if f.startswith('participants_') and f.endswith('.csv')]
+        data_dir = get_data_dir()
+        logger.info(f"Looking for participants files in: {data_dir}")
+        
+        # List all files in the data directory
+        all_files = os.listdir(data_dir)
+        logger.info(f"All files in data directory: {all_files}")
+        
+        # Look for both participants_*.csv and participants.csv
+        participants_files = [f for f in all_files if (f.startswith('participants_') and f.endswith('.csv')) or f == 'participants.csv']
+        logger.info(f"Found participants CSV files: {participants_files}")
+        
         if not participants_files:
+            logger.warning("No participants CSV files found!")
             return None
+            
+        # Get the latest file
         latest_file = sorted(participants_files)[-1]
+        logger.info(f"Latest participants file: {latest_file}")
+        
         # Extract date from filename (participants_YYYYMMDD.csv)
-        date_str = latest_file.split('_')[1].split('.')[0]
-        # Convert to readable format
-        date = datetime.strptime(date_str, '%Y%m%d')
-        return date.strftime('%B %d, %Y')
+        if latest_file.startswith('participants_'):
+            date_str = latest_file.split('_')[1].split('.')[0]
+            # Convert to readable format
+            date = datetime.strptime(date_str, '%Y%m%d')
+            return date.strftime('%B %d, %Y')
+        else:
+            # If it's just participants.csv, use its modification time
+            file_path = os.path.join(data_dir, latest_file)
+            mod_time = os.path.getmtime(file_path)
+            date = datetime.fromtimestamp(mod_time)
+            return date.strftime('%B %d, %Y')
+            
     except Exception as e:
         logger.error(f"Error getting last run date: {str(e)}")
+        logger.error(traceback.format_exc())
         return None
 
 @app.route('/api/stats')
