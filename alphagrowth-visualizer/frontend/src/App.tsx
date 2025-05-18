@@ -11,7 +11,9 @@ function App() {
   useEffect(() => {
     const fetchLastRunDate = async () => {
       try {
-        const response = await axios.get(`${apiBaseUrl}/api/last-run`)
+        const response = await axios.get(`${apiBaseUrl}/api/last-run`, {
+          withCredentials: true
+        })
         setLastRunDate(response.data.last_run_date)
       } catch (error) {
         console.error('Error fetching last run date:', error)
